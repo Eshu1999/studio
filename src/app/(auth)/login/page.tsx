@@ -52,7 +52,7 @@ export default function LoginPage() {
       router.push('/dashboard');
     } catch (error: any) {
       toast({
-        title: 'Login Failed',
+        title: 'Admin Login Failed',
         description: error.message,
         variant: 'destructive',
       });
