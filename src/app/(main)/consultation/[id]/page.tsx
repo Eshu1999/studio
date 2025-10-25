@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { appointments, doctors } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Button } from '@/components/ui/button';
@@ -10,10 +10,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mic, MicOff, Video, VideoOff, PhoneOff } from 'lucide-react';
 import { ConsultationSummary } from '@/components/consultation-summary';
 
-export default function ConsultationPage({ params }: { params: { id: string } }) {
+export default function ConsultationPage() {
   const [callActive, setCallActive] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
+  const params = useParams<{ id: string }>();
 
   const appointment = appointments.find((a) => a.id === params.id);
   if (!appointment) notFound();

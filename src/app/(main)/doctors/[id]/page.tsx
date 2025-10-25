@@ -1,6 +1,8 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { doctors } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Button } from '@/components/ui/button';
@@ -8,7 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Stethoscope, Star, CalendarDays } from 'lucide-react';
 
-export default function DoctorProfilePage({ params }: { params: { id: string } }) {
+export default function DoctorProfilePage() {
+  const params = useParams<{ id: string }>();
   const doctor = doctors.find((d) => d.id === params.id);
 
   if (!doctor) {

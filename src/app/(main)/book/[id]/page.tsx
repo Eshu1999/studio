@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { notFound, useRouter } from 'next/navigation';
+import { notFound, useRouter, useParams } from 'next/navigation';
 import { doctors } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -11,8 +11,9 @@ import { ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
-export default function BookAppointmentPage({ params }: { params: { id: string } }) {
+export default function BookAppointmentPage() {
   const router = useRouter();
+  const params = useParams<{ id: string }>();
   const { toast } = useToast();
   const doctor = doctors.find((d) => d.id === params.id);
 
