@@ -48,12 +48,25 @@ export default function LoginPage() {
     e.preventDefault();
     if (!auth) return;
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push('/dashboard');
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      if (!userCredential.user.emailVerified) {
+        toast({
+          title: 'Email Not Verified',
+          description: 'Please check your inbox and verify your email address before logging in.',
+          variant: 'destructive'
+        });
+        auth.signOut(); // Sign out the user until they are verified
+      } else {
+        router.push('/dashboard');
+      }
     } catch (error: any) {
+      let description = error.message;
+      if (error.code === 'auth/invalid-credential') {
+        description = 'Invalid email or password. Please try again.';
+      }
       toast({
-        title: 'Admin Login Failed',
-        description: error.message,
+        title: 'Login Failed',
+        description,
         variant: 'destructive',
       });
     }
