@@ -11,28 +11,28 @@ export default function Home() {
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-background');
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-gray-50/50">
       <header className="px-4 lg:px-6 h-16 flex items-center bg-background/80 backdrop-blur-sm border-b fixed top-0 w-full z-50">
         <Link href="/" className="flex items-center justify-center">
           <HeartPulse className="h-6 w-6 text-primary" />
           <span className="ml-2 text-lg font-semibold">DocConnect</span>
         </Link>
-        <nav className="ml-auto flex gap-4 sm:gap-6">
+        <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
           <Link
             href="/#features"
-            className="text-sm font-medium hover:underline underline-offset-4"
+            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
           >
             Features
           </Link>
           <Link
             href="/#doctors"
-            className="text-sm font-medium hover:underline underline-offset-4"
+            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
           >
             Doctors
           </Link>
            <Link
             href="/dashboard"
-            className="text-sm font-medium hover:underline underline-offset-4"
+            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
           >
             Dashboard
           </Link>
@@ -56,10 +56,10 @@ export default function Home() {
           <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
           <div className="container px-4 md:px-6 relative z-10 text-center text-foreground">
             <div className="max-w-3xl mx-auto">
-              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl font-headline">
+              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
                 Your Health, Your Schedule
               </h1>
-              <p className="mt-4 text-lg md:text-xl">
+              <p className="mt-4 text-lg md:text-xl text-muted-foreground">
                 Easily book appointments with trusted medical professionals.
                 Quality healthcare is just a click away.
               </p>
@@ -72,9 +72,9 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="doctors" className="w-full py-12 md:py-24 lg:py-32">
+        <section id="doctors" className="w-full py-12 md:py-24 lg:py-32 bg-background">
           <div className="container px-4 md:px-6">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center font-headline">
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center">
               Our Top Doctors
             </h2>
             <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl text-center mt-4">
@@ -93,9 +93,9 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-secondary/50">
+        <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-secondary/20">
           <div className="container px-4 md:px-6">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center font-headline">
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center">
               How It Works
             </h2>
             <div className="mx-auto grid max-w-5xl items-start gap-12 mt-12 sm:grid-cols-3">
