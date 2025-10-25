@@ -14,8 +14,7 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-gray-50/50">
       <header className="px-4 lg:px-6 h-16 flex items-center bg-background/80 backdrop-blur-sm border-b fixed top-0 w-full z-50">
         <Link href="/" className="flex items-center justify-center">
-          <HeartPulse className="h-6 w-6 text-primary" />
-          <span className="ml-2 text-lg font-semibold">DocConnect</span>
+          <span className="sr-only">DocConnect</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
           <Link
@@ -44,7 +43,11 @@ export default function Home() {
       <main className="flex-1 pt-16">
         <section className="relative w-full py-20 md:py-32 lg:py-40 bg-background">
           <div className="container px-4 md:px-6 relative z-10 text-center text-foreground">
-            <div className="max-w-3xl mx-auto">
+            <div className="max-w-3xl mx-auto flex flex-col items-center">
+              <div className="flex items-center justify-center mb-4">
+                <HeartPulse className="h-10 w-10 text-primary" />
+                <span className="ml-3 text-3xl font-semibold">DocConnect</span>
+              </div>
               <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
                 Your Health, Your Schedule
               </h1>
