@@ -21,7 +21,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera } from 'lucide-react';
+import { Camera, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SettingsPage() {
@@ -82,6 +82,15 @@ export default function SettingsPage() {
                 <Input type="password" placeholder="Current Password" />
                 <Input type="password" placeholder="New Password" />
             </div>
+          </div>
+
+          <Separator />
+
+          <div>
+            <Button variant="destructive">
+              <LogOut className="mr-2 h-4 w-4" />
+              Log Out
+            </Button>
           </div>
 
         </CardContent>
