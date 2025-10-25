@@ -10,6 +10,11 @@ export function FirebaseClientProvider({
   children: React.ReactNode;
 }) {
   const [instances, setInstances] = useState(() => initializeFirebase());
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // We only want to initialize Firebase once on the client
   useEffect(() => {
@@ -19,7 +24,7 @@ export function FirebaseClientProvider({
   }, [instances]);
   
   // If we're on the server or Firebase is not initialized, we don't render
-  if (typeof window === 'undefined' || !instances) {
+  if (!isClient || !instances) {
     return null;
   }
 
