@@ -3,10 +3,9 @@
 import { AppHeader } from '@/components/app-header';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import { useUser } from '@/firebase';
+import { useUser, FirebaseClientProvider } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { FirebaseClientProvider } from '@/firebase';
 
 function MainLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
@@ -17,15 +16,13 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
     setIsClient(true);
   }, []);
 
-
   useEffect(() => {
     if (!loading && !user && isClient) {
       router.push('/login');
     }
   }, [user, loading, router, isClient]);
 
-  if (!isClient || loading || !user) {
-    // You can replace this with a proper loading spinner component
+  if (loading || !user) {
     return (
       <div className="flex h-screen items-center justify-center">
         Loading...
@@ -34,7 +31,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-     <SidebarProvider>
+    <SidebarProvider>
       <AppSidebar />
       <div className="flex flex-col min-h-screen w-full">
         <AppHeader />
@@ -46,11 +43,14 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   );
 }
 
-
-export default function MainLayout({ children }: { children: React.ReactNode }) {
+export default function MainLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <FirebaseClientProvider>
       <MainLayoutContent>{children}</MainLayoutContent>
     </FirebaseClientProvider>
-  )
+  );
 }
