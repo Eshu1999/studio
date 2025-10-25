@@ -37,7 +37,7 @@ export default function Home() {
             Dashboard
           </Link>
           <Button asChild>
-            <Link href="/doctors">Book Now</Link>
+            <Link href="/appointments">Scheduled Appointment</Link>
           </Button>
         </nav>
       </header>
