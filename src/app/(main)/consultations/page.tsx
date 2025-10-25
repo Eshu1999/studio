@@ -42,8 +42,7 @@ export default function ConsultationsPage() {
         <CardHeader>
           <CardTitle>Completed Consultations</CardTitle>
           <CardDescription>
-            You have{' '}
-            {completedAppointments.length} completed consultations.
+            You have {completedAppointments.length} completed consultations.
           </CardDescription>
         </CardHeader>
         <CardContent>
