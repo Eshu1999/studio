@@ -1,10 +1,34 @@
+'use client';
+
 import { AppHeader } from '@/components/app-header';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { useUser } from '@/firebase';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { FirebaseClientProvider } from '@/firebase';
 
-export default function MainLayout({ children }: { children: React.ReactNode }) {
+function MainLayoutContent({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user) {
+    // You can replace this with a proper loading spinner component
+    return (
+      <div className="flex h-screen items-center justify-center">
+        Loading...
+      </div>
+    );
+  }
+
   return (
-    <SidebarProvider>
+     <SidebarProvider>
       <AppSidebar />
       <div className="flex flex-col min-h-screen w-full">
         <AppHeader />
@@ -14,4 +38,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       </div>
     </SidebarProvider>
   );
+}
+
+
+export default function MainLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <FirebaseClientProvider>
+      <MainLayoutContent>{children}</MainLayoutContent>
+    </FirebaseClientProvider>
+  )
 }

@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -23,16 +22,40 @@ import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth, useUser } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  const auth = useAuth();
+  const { user } = useUser();
+  const router = useRouter();
 
   const handleSaveChanges = () => {
     toast({
       title: 'Settings Saved',
       description: 'Your changes have been saved successfully.',
     });
-  }
+  };
+
+  const handleLogout = async () => {
+    if (!auth) return;
+    try {
+      await signOut(auth);
+      router.push('/login');
+      toast({
+        title: 'Logged Out',
+        description: 'You have been successfully logged out.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to log out. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   return (
     <div className="flex flex-col gap-8 max-w-4xl mx-auto">
@@ -54,8 +77,8 @@ export default function SettingsPage() {
         <CardContent className="space-y-6">
           <div className="flex items-center gap-4">
             <Avatar className="h-20 w-20">
-              <AvatarImage src="https://picsum.photos/seed/user/100/100" />
-              <AvatarFallback>U</AvatarFallback>
+              <AvatarImage src={user?.photoURL ?? "https://picsum.photos/seed/user/100/100"} />
+              <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
             <Button variant="outline">
                 <Camera className="mr-2 h-4 w-4" />
@@ -66,11 +89,11 @@ export default function SettingsPage() {
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" defaultValue="Current User" />
+              <Input id="name" defaultValue={user?.displayName ?? 'Current User'} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue="user@example.com" />
+              <Input id="email" type="email" defaultValue={user?.email ?? 'user@example.com'} />
             </div>
           </div>
           
@@ -87,7 +110,7 @@ export default function SettingsPage() {
           <Separator />
 
           <div>
-            <Button variant="destructive">
+            <Button variant="destructive" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               Log Out
             </Button>
