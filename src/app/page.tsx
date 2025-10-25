@@ -61,27 +61,6 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="doctors" className="w-full py-12 md:py-24 lg:py-32 bg-background">
-          <div className="container px-4 md:px-6">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center">
-              Our Top Doctors
-            </h2>
-            <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl text-center mt-4">
-              Meet our team of experienced and caring doctors, ready to help you.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-8">
-              {doctors.slice(0, 4).map((doctor) => (
-                <DoctorCard key={doctor.id} doctor={doctor} />
-              ))}
-            </div>
-            <div className="text-center mt-12">
-              <Button variant="outline" asChild>
-                <Link href="/doctors">View All Doctors</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-
         <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-secondary/20">
           <div className="container px-4 md:px-6">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-center">
