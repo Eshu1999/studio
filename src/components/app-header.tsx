@@ -17,9 +17,10 @@ import { useAuth, useUser } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 export function AppHeader() {
-  const { isMobile } = useSidebar();
+  const { isMobile, open } = useSidebar();
   const auth = useAuth();
   const { user } = useUser();
   const router = useRouter();
@@ -45,17 +46,19 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-sidebar/80 backdrop-blur-sm px-4 md:px-6">
-      {isMobile ? (
+      <div className="flex items-center gap-2">
         <SidebarTrigger />
-      ) : (
         <Link
           href="/dashboard"
-          className="flex items-center gap-2 font-semibold"
+          className={cn(
+            "flex items-center gap-2 font-semibold transition-opacity",
+            !isMobile && !open && "opacity-0 pointer-events-none"
+            )}
         >
           <HeartPulse className="h-6 w-6 text-primary" />
           <span className="text-lg">DocConnect</span>
         </Link>
-      )}
+      </div>
 
       <div className="flex w-full items-center justify-end gap-4">
         <DropdownMenu>
