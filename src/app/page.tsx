@@ -42,18 +42,7 @@ export default function Home() {
         </nav>
       </header>
       <main className="flex-1 pt-16">
-        <section className="relative w-full py-20 md:py-32 lg:py-40">
-          {heroImage && (
-            <Image
-              src={heroImage.imageUrl}
-              alt={heroImage.description}
-              fill
-              className="object-cover object-center"
-              priority
-              data-ai-hint={heroImage.imageHint}
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+        <section className="relative w-full py-20 md:py-32 lg:py-40 bg-background">
           <div className="container px-4 md:px-6 relative z-10 text-center text-foreground">
             <div className="max-w-3xl mx-auto">
               <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
