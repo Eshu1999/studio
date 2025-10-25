@@ -45,10 +45,10 @@ export default function Home() {
           <div className="container px-4 md:px-6 relative z-10 text-center text-foreground">
             <div className="max-w-3xl mx-auto flex flex-col items-center">
               <div className="flex items-center justify-center mb-4">
-                <HeartPulse className="h-10 w-10 text-primary" />
-                <span className="ml-3 text-3xl font-semibold">DocConnect</span>
+                <HeartPulse className="h-12 w-12 text-primary" />
+                <span className="ml-3 text-4xl font-semibold">DocConnect</span>
               </div>
-              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
+              <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
                 Your Health, Your Schedule
               </h1>
               <p className="mt-4 text-lg md:text-xl text-muted-foreground">
