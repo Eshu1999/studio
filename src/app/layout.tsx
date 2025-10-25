@@ -1,10 +1,14 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import { Inter } from 'next/font/google';
+import { Roboto } from 'next/font/google';
 import { cn } from '@/lib/utils';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const roboto = Roboto({ 
+  subsets: ['latin'], 
+  variable: '--font-roboto',
+  weight: ['400', '500', '700'] 
+});
 
 export const metadata: Metadata = {
   title: 'DocConnect',
@@ -17,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn('h-full font-sans', inter.variable)}>
+    <html lang="en" className={cn('h-full font-sans', roboto.variable)}>
       <body className="antialiased h-full">
         {children}
         <Toaster />
