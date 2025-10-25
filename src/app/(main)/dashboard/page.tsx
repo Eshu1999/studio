@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import {
   Card,
@@ -36,7 +37,7 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Welcome Back!</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
             Here&apos;s a summary of your medical activities.
           </p>
