@@ -1,3 +1,4 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -29,8 +30,14 @@ export default function Home() {
           >
             Doctors
           </Link>
+           <Link
+            href="/dashboard"
+            className="text-sm font-medium hover:underline underline-offset-4"
+          >
+            Dashboard
+          </Link>
           <Button asChild>
-            <Link href="/dashboard">Get Started</Link>
+            <Link href="/doctors">Book Now</Link>
           </Button>
         </nav>
       </header>
@@ -58,7 +65,7 @@ export default function Home() {
               </p>
               <div className="mt-6">
                 <Button size="lg" asChild>
-                  <Link href="/dashboard">Book an Appointment</Link>
+                  <Link href="/doctors">Book an Appointment</Link>
                 </Button>
               </div>
             </div>
@@ -80,7 +87,7 @@ export default function Home() {
             </div>
             <div className="text-center mt-12">
               <Button variant="outline" asChild>
-                <Link href="/dashboard">View All Doctors</Link>
+                <Link href="/doctors">View All Doctors</Link>
               </Button>
             </div>
           </div>
