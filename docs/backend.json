@@ -8,7 +8,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the User entity."
+          "description": "Unique identifier for the User entity. This should be the Firebase Auth UID."
         },
         "firstName": {
           "type": "string",
@@ -23,47 +23,27 @@
           "description": "Email address of the user.",
           "format": "email"
         },
-        "phone": {
+        "role": {
           "type": "string",
-          "description": "Phone number of the user."
-        },
-        "dateOfBirth": {
-          "type": "string",
-          "description": "Date of birth of the user.",
-          "format": "date-time"
+          "description": "The role of the user within the application.",
+          "enum": ["patient", "doctor"]
         }
       },
       "required": [
         "id",
-        "firstName",
-        "lastName",
         "email",
-        "phone",
-        "dateOfBirth"
+        "role"
       ]
     },
-    "Doctor": {
+    "DoctorProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Doctor",
+      "title": "DoctorProfile",
       "type": "object",
-      "description": "Represents a doctor within the DocConnect application.",
+      "description": "Represents the professional profile of a user with the 'doctor' role.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Doctor entity."
-        },
-        "firstName": {
-          "type": "string",
-          "description": "First name of the doctor."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "Last name of the doctor."
-        },
-        "email": {
-          "type": "string",
-          "description": "Email address of the doctor.",
-          "format": "email"
+          "description": "Unique identifier for the DoctorProfile, typically the same as the User UID."
         },
         "specialization": {
           "type": "string",
@@ -85,12 +65,8 @@
       },
       "required": [
         "id",
-        "firstName",
-        "lastName",
-        "email",
         "specialization",
-        "experienceYears",
-        "availability"
+        "experienceYears"
       ]
     },
     "Appointment": {
@@ -103,13 +79,13 @@
           "type": "string",
           "description": "Unique identifier for the Appointment entity."
         },
-        "userId": {
+        "patientId": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Appointment)"
+          "description": "Reference to the User with role 'patient'."
         },
         "doctorId": {
           "type": "string",
-          "description": "Reference to Doctor. (Relationship: Doctor 1:N Appointment)"
+          "description": "Reference to the User with role 'doctor'."
         },
         "startTime": {
           "type": "string",
@@ -128,7 +104,7 @@
       },
       "required": [
         "id",
-        "userId",
+        "patientId",
         "doctorId",
         "startTime",
         "endTime",
@@ -170,7 +146,8 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "anonymous",
+      "google.com"
     ]
   },
   "firestore": {
@@ -182,7 +159,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profiles. Path-based ownership ensures that only the user can access their own profile data.",
+          "description": "Stores all user profiles, for both patients and doctors. The 'role' field distinguishes them. Path-based ownership ensures users can only access their own profile data.",
           "params": [
             {
               "name": "userId",
@@ -192,54 +169,34 @@
         }
       },
       {
-        "path": "/doctors/{doctorId}",
+        "path": "/users/{userId}/doctorProfile/{profileId}",
         "definition": {
-          "entityName": "Doctor",
+          "entityName": "DoctorProfile",
           "schema": {
-            "$ref": "#/backend/entities/Doctor"
+            "$ref": "#/backend/entities/DoctorProfile"
           },
-          "description": "Stores doctor profiles. Path-based ownership ensures that only the doctor can access their own profile data.",
-          "params": [
-            {
-              "name": "doctorId",
-              "description": "The unique identifier for the doctor."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/appointments/{appointmentId}",
-        "definition": {
-          "entityName": "Appointment",
-          "schema": {
-            "$ref": "#/backend/entities/Appointment"
-          },
-          "description": "Stores appointments scheduled by a user. Includes denormalized data (e.g., doctor's name, specialization) for authorization independence.",
+          "description": "Stores the professional profile for users with the 'doctor' role.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier for the user."
+              "description": "The UID of the user this profile belongs to."
             },
             {
-              "name": "appointmentId",
-              "description": "The unique identifier for the appointment."
+              "name": "profileId",
+              "description": "The unique identifier for the doctor profile."
             }
           ]
         }
       },
       {
-        "path": "/doctors/{doctorId}/appointments/{appointmentId}",
+        "path": "/appointments/{appointmentId}",
         "definition": {
           "entityName": "Appointment",
           "schema": {
             "$ref": "#/backend/entities/Appointment"
           },
-          "description": "Stores appointments scheduled with a doctor. Includes denormalized data (e.g., user's name) for authorization independence.",
+          "description": "Top-level collection for all appointments. Security rules will grant access based on patientId or doctorId.",
           "params": [
-            {
-              "name": "doctorId",
-              "description": "The unique identifier for the doctor."
-            },
             {
               "name": "appointmentId",
               "description": "The unique identifier for the appointment."
@@ -248,30 +205,26 @@
         }
       },
       {
-        "path": "/users/{userId}/appointments/{appointmentId}/consultation_summaries/{consultationSummaryId}",
+        "path": "/appointments/{appointmentId}/consultationSummary/{summaryId}",
         "definition": {
           "entityName": "ConsultationSummary",
           "schema": {
             "$ref": "#/backend/entities/ConsultationSummary"
           },
-          "description": "Stores consultation summaries for a given appointment. Path-based ownership ensures that only the user who scheduled the appointment and the doctor can access the summary.",
+          "description": "Stores consultation summaries for a given appointment.",
           "params": [
             {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
               "name": "appointmentId",
-              "description": "The unique identifier for the appointment."
+              "description": "The ID of the parent appointment."
             },
             {
-              "name": "consultationSummaryId",
-              "description": "The unique identifier for the consultation summary."
+              "name": "summaryId",
+              "description": "The unique ID for the summary."
             }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the DocConnect application, facilitating doctor profile creation, appointment scheduling, video call integration, and automated summarization. It emphasizes authorization independence, clarity, and secure `list` operations. Separate collections are used for `users` and `doctors` to maintain a homogeneous security posture, reflecting the different roles and access requirements. The `appointments` subcollection under each user and doctor ensures proper data segregation and simplifies ownership-based security rules. Denormalization of relevant user/doctor data within the appointment documents will be important for authorization independence. The `consultation_summaries` are stored as subcollections within appointments to maintain easy querying."
+    "reasoning": "The Firestore structure is designed to support a role-based application (patients and doctors). A single `/users` collection is used for authentication and basic profile data, with a `role` field to differentiate. Doctor-specific professional data is stored in a subcollection `/users/{userId}/doctorProfile` to keep the main user document lean. Appointments are in a top-level collection for easier querying by both patients and doctors, with security rules ensuring that only involved parties can access the appointment details. This structure is scalable and secure."
   }
 }

@@ -1,3 +1,11 @@
+export type User = {
+  id: string;
+  role: 'patient' | 'doctor';
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+}
+
 export type Doctor = {
   id: string;
   name: string;
