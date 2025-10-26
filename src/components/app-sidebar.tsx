@@ -19,18 +19,51 @@ import {
   Video,
   Settings,
   CircleHelp,
+  Briefcase,
+  CalendarClock,
 } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 
-const navItems = [
+
+const patientNavItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/appointments', icon: Calendar, label: 'Appointments' },
   { href: '/doctors', icon: Users, label: 'Doctors' },
   { href: '/consultations', icon: Video, label: 'Consultations' },
 ];
 
+const doctorNavItems = [
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/appointments', icon: Calendar, label: 'Appointments' },
+  { href: '/patients', icon: Users, label: 'My Patients' },
+  { href: '/availability', icon: CalendarClock, label: 'Availability' },
+]
+
 export function AppSidebar() {
   const pathname = usePathname();
+  const { user, loading: userLoading } = useUser();
+  const firestore = useFirestore();
+  const [role, setRole] = useState<string | null>(null);
+
+  const userDocRef = useMemoFirebase(
+    () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
+    [firestore, user]
+  );
+  
+  useEffect(() => {
+    if (userDocRef) {
+      getDoc(userDocRef)
+        .then((docSnap) => {
+          if (docSnap.exists()) {
+            setRole(docSnap.data().role);
+          }
+        });
+    }
+  }, [userDocRef]);
+
+  const navItems = role === 'doctor' ? doctorNavItems : patientNavItems;
 
   return (
     <Sidebar>

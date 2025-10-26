@@ -22,21 +22,86 @@ import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const auth = useAuth();
-  const { user } = useUser();
+  const { user, loading: userLoading } = useUser();
+  const firestore = useFirestore();
   const router = useRouter();
+  
+  const [userData, setUserData] = useState<any>(null);
+  const [doctorProfile, setDoctorProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleSaveChanges = () => {
-    toast({
-      title: 'Settings Saved',
-      description: 'Your changes have been saved successfully.',
-    });
+  const userDocRef = useMemoFirebase(
+    () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
+    [firestore, user]
+  );
+  
+  const doctorProfileRef = useMemoFirebase(
+    () => (firestore && user ? doc(firestore, `users/${user.uid}/doctorProfile`, user.uid) : null),
+    [firestore, user]
+  );
+
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (userDocRef) {
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setUserData(data);
+          if (data.role === 'doctor' && doctorProfileRef) {
+            const profileDoc = await getDoc(doctorProfileRef);
+            if (profileDoc.exists()) {
+              setDoctorProfile(profileDoc.data());
+            } else {
+              setDoctorProfile({}); // Init empty profile for new doctors
+            }
+          }
+        }
+      }
+      setLoading(false);
+    };
+    if (!userLoading) {
+      fetchData();
+    }
+  }, [userDocRef, doctorProfileRef, userLoading]);
+
+  const handleSaveChanges = async () => {
+    if (!user || !firestore || !userData) return;
+    try {
+      if (userDocRef) {
+        await setDoc(userDocRef, {
+          firstName: userData.firstName,
+          lastName: userData.lastName
+        }, { merge: true });
+      }
+
+      if (userData.role === 'doctor' && doctorProfileRef && doctorProfile) {
+        await setDoc(doctorProfileRef, {
+            ...doctorProfile,
+            id: user.uid,
+        }, { merge: true });
+      }
+
+      toast({
+        title: 'Settings Saved',
+        description: 'Your changes have been saved successfully.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: `Failed to save changes: ${error.message}`,
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleLogout = async () => {
@@ -56,6 +121,10 @@ export default function SettingsPage() {
       });
     }
   };
+  
+  if (loading || userLoading) {
+    return <div className="flex h-full items-center justify-center">Loading Settings...</div>;
+  }
 
   return (
     <div className="flex flex-col gap-8 max-w-4xl mx-auto">
@@ -66,7 +135,6 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      {/* Account Settings */}
       <Card>
         <CardHeader>
           <CardTitle>Account Settings</CardTitle>
@@ -88,15 +156,42 @@ export default function SettingsPage() {
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input id="name" defaultValue={user?.displayName ?? 'Current User'} />
+              <Label htmlFor="firstName">First Name</Label>
+              <Input id="firstName" value={userData?.firstName || ''} onChange={(e) => setUserData({...userData, firstName: e.target.value})} />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input id="lastName" value={userData?.lastName || ''} onChange={(e) => setUserData({...userData, lastName: e.target.value})} />
+            </div>
+             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue={user?.email ?? 'user@example.com'} />
+              <Input id="email" type="email" value={user?.email ?? ''} disabled />
             </div>
           </div>
           
+          {userData?.role === 'doctor' && doctorProfile && (
+            <>
+              <Separator />
+              <div className="space-y-4">
+                 <h3 className="text-lg font-medium">Doctor Profile</h3>
+                 <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="specialization">Specialization</Label>
+                      <Input id="specialization" value={doctorProfile?.specialization || ''} onChange={(e) => setDoctorProfile({...doctorProfile, specialization: e.target.value})} placeholder="e.g., Cardiology"/>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="experience">Years of Experience</Label>
+                      <Input id="experience" type="number" value={doctorProfile?.experienceYears || ''} onChange={(e) => setDoctorProfile({...doctorProfile, experienceYears: Number(e.target.value)})} placeholder="e.g., 10"/>
+                    </div>
+                     <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="availability">Availability Notes</Label>
+                      <Input id="availability" value={doctorProfile?.availability || ''} onChange={(e) => setDoctorProfile({...doctorProfile, availability: e.target.value})} placeholder="e.g., Mon-Fri, 9am-5pm"/>
+                    </div>
+                 </div>
+              </div>
+            </>
+          )}
+
           <Separator />
 
           <div className="space-y-2">
@@ -114,64 +209,6 @@ export default function SettingsPage() {
               <LogOut className="mr-2 h-4 w-4" />
               Log Out
             </Button>
-          </div>
-
-        </CardContent>
-      </Card>
-
-      {/* App Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>App Settings</CardTitle>
-          <CardDescription>
-            Customize the application to your preferences.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-                <Label>Theme</Label>
-                <p className="text-sm text-muted-foreground">Choose between light and dark mode.</p>
-            </div>
-            <Select defaultValue="system">
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select theme" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="light">Light</SelectItem>
-                <SelectItem value="dark">Dark</SelectItem>
-                <SelectItem value="system">System</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Separator />
-          
-          <div className="flex items-center justify-between">
-            <div>
-                <Label>Language</Label>
-                <p className="text-sm text-muted-foreground">Select your preferred language.</p>
-            </div>
-            <Select defaultValue="en">
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select language" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="en">English</SelectItem>
-                <SelectItem value="es">Spanish</SelectItem>
-                <SelectItem value="fr">French</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <Separator />
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="email-notifications">Email Notifications</Label>
-               <p className="text-sm text-muted-foreground">Receive updates about your appointments.</p>
-            </div>
-            <Switch id="email-notifications" defaultChecked />
           </div>
 
         </CardContent>
