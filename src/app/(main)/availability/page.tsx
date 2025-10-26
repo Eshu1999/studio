@@ -13,7 +13,15 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { X, Plus } from 'lucide-react';
+import { X, Clock } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 // Mock availability data. In a real app, this would come from Firestore.
 const initialAvailability: Record<string, string[]> = {
@@ -26,29 +34,47 @@ export default function AvailabilityPage() {
   const { toast } = useToast();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [availability, setAvailability] = useState(initialAvailability);
-  const [newTime, setNewTime] = useState('');
+
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('17:00');
+  const [duration, setDuration] = useState('30');
 
   const selectedDateString = date ? date.toISOString().split('T')[0] : '';
   const timeSlotsForSelectedDate = availability[selectedDateString] || [];
 
-  const handleAddTime = () => {
+  const handleGenerateSlots = () => {
     if (!date) {
       toast({ title: 'Error', description: 'Please select a date first.', variant: 'destructive'});
       return;
     }
-    if (!newTime.match(/^([01]\d|2[0-3]):([0-5]\d)$/)) {
-        toast({ title: 'Error', description: 'Please enter a valid time in HH:MM format (e.g., 09:30).', variant: 'destructive'});
+    if (!startTime || !endTime || !duration) {
+      toast({ title: 'Error', description: 'Please fill in start time, end time, and duration.', variant: 'destructive'});
+      return;
+    }
+
+    const start = new Date(`${selectedDateString}T${startTime}`);
+    const end = new Date(`${selectedDateString}T${endTime}`);
+    const durationMinutes = parseInt(duration, 10);
+
+    if (start >= end) {
+        toast({ title: 'Error', description: 'End time must be after start time.', variant: 'destructive'});
         return;
     }
 
-    const updatedSlots = [...timeSlotsForSelectedDate, newTime].sort();
+    const generatedSlots: string[] = [];
+    let currentTime = new Date(start);
+
+    while (currentTime < end) {
+        generatedSlots.push(currentTime.toTimeString().substring(0, 5));
+        currentTime.setMinutes(currentTime.getMinutes() + durationMinutes);
+    }
     
     setAvailability(prev => ({
         ...prev,
-        [selectedDateString]: updatedSlots,
+        [selectedDateString]: generatedSlots,
     }));
-    setNewTime('');
-    toast({ title: 'Success', description: `Added slot ${newTime} for ${date.toLocaleDateString()}.`});
+
+    toast({ title: 'Success', description: `Generated ${generatedSlots.length} slots for ${date.toLocaleDateString()}.`});
   };
   
   const handleRemoveTime = (timeToRemove: string) => {
@@ -59,6 +85,11 @@ export default function AvailabilityPage() {
         [selectedDateString]: updatedSlots,
     }));
      toast({ title: 'Slot Removed', description: `Removed slot ${timeToRemove}.`});
+  }
+
+  const handleSaveChanges = () => {
+     // In a real app, this would save the `availability` object to Firestore
+     toast({ title: 'Changes Saved', description: 'Your availability has been updated.'});
   }
 
   return (
@@ -85,26 +116,45 @@ export default function AvailabilityPage() {
             </div>
           </div>
           <div>
-            <h3 className="font-semibold mb-4 text-lg">2. Manage Time Slots</h3>
+            <h3 className="font-semibold mb-4 text-lg">2. Set Your Hours</h3>
             {date ? (
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Editing slots for: <span className="font-semibold text-foreground">{date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                </p>
-                 <div className="flex items-center gap-2">
-                    <Input 
-                        type="time" 
-                        value={newTime}
-                        onChange={(e) => setNewTime(e.target.value)}
-                        className="w-48"
-                    />
-                    <Button onClick={handleAddTime} size="icon">
-                        <Plus className="h-4 w-4" />
-                    </Button>
+              <div className="space-y-6">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Set your working hours for: <span className="font-semibold text-foreground">{date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                  </p>
+                  <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                          <Label htmlFor="start-time">Start Time</Label>
+                          <Input id="start-time" type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                          <Label htmlFor="end-time">End Time</Label>
+                          <Input id="end-time" type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
+                      </div>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    <Label>Meeting Duration</Label>
+                    <Select value={duration} onValueChange={setDuration}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select duration" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="15">15 minutes</SelectItem>
+                        <SelectItem value="30">30 minutes</SelectItem>
+                        <SelectItem value="45">45 minutes</SelectItem>
+                        <SelectItem value="60">60 minutes</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button onClick={handleGenerateSlots} className="mt-4 w-full">
+                    <Clock className="mr-2 h-4 w-4" />
+                    Generate Slots
+                  </Button>
                 </div>
 
                 <div className="space-y-2">
-                    <h4 className="font-medium">Available Slots:</h4>
+                    <h4 className="font-medium">Generated Slots:</h4>
                     {timeSlotsForSelectedDate.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
                             {timeSlotsForSelectedDate.map(time => (
@@ -117,11 +167,11 @@ export default function AvailabilityPage() {
                             ))}
                         </div>
                     ) : (
-                        <p className="text-sm text-muted-foreground">No slots scheduled for this day.</p>
+                        <p className="text-sm text-muted-foreground border rounded-md p-4 text-center">No slots generated for this day.</p>
                     )}
                 </div>
                  <div className="pt-4">
-                  <Button>Save Changes</Button>
+                  <Button onClick={handleSaveChanges}>Save Changes for this Date</Button>
                 </div>
               </div>
             ) : (
