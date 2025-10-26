@@ -1,0 +1,277 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the DocConnect application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "First name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number of the user."
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "description": "Date of birth of the user.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "email",
+        "phone",
+        "dateOfBirth"
+      ]
+    },
+    "Doctor": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Doctor",
+      "type": "object",
+      "description": "Represents a doctor within the DocConnect application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Doctor entity."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "First name of the doctor."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the doctor."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the doctor.",
+          "format": "email"
+        },
+        "specialization": {
+          "type": "string",
+          "description": "The doctor's area of specialization (e.g., Cardiology, Pediatrics)."
+        },
+        "experienceYears": {
+          "type": "number",
+          "description": "The number of years of experience the doctor has."
+        },
+        "availability": {
+          "type": "string",
+          "description": "Information about the doctor's availability (e.g., days of the week, time slots)."
+        },
+        "photoUrl": {
+          "type": "string",
+          "description": "URL to the doctor's profile photo.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "email",
+        "specialization",
+        "experienceYears",
+        "availability"
+      ]
+    },
+    "Appointment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Appointment",
+      "type": "object",
+      "description": "Represents a scheduled appointment between a user and a doctor.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Appointment entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Appointment)"
+        },
+        "doctorId": {
+          "type": "string",
+          "description": "Reference to Doctor. (Relationship: Doctor 1:N Appointment)"
+        },
+        "startTime": {
+          "type": "string",
+          "description": "The date and time the appointment is scheduled to begin.",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "description": "The date and time the appointment is scheduled to end.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the appointment such as 'Scheduled', 'Completed', or 'Cancelled'."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "doctorId",
+        "startTime",
+        "endTime",
+        "status"
+      ]
+    },
+    "ConsultationSummary": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ConsultationSummary",
+      "type": "object",
+      "description": "Represents the summary of a consultation generated after a video call.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ConsultationSummary entity."
+        },
+        "appointmentId": {
+          "type": "string",
+          "description": "Reference to Appointment. (Relationship: Appointment 1:1 ConsultationSummary)"
+        },
+        "summaryText": {
+          "type": "string",
+          "description": "The text of the generated consultation summary."
+        },
+        "createdTime": {
+          "type": "string",
+          "description": "The time at which the consultation summary was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "appointmentId",
+        "summaryText",
+        "createdTime"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Path-based ownership ensures that only the user can access their own profile data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/doctors/{doctorId}",
+        "definition": {
+          "entityName": "Doctor",
+          "schema": {
+            "$ref": "#/backend/entities/Doctor"
+          },
+          "description": "Stores doctor profiles. Path-based ownership ensures that only the doctor can access their own profile data.",
+          "params": [
+            {
+              "name": "doctorId",
+              "description": "The unique identifier for the doctor."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/appointments/{appointmentId}",
+        "definition": {
+          "entityName": "Appointment",
+          "schema": {
+            "$ref": "#/backend/entities/Appointment"
+          },
+          "description": "Stores appointments scheduled by a user. Includes denormalized data (e.g., doctor's name, specialization) for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "appointmentId",
+              "description": "The unique identifier for the appointment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/doctors/{doctorId}/appointments/{appointmentId}",
+        "definition": {
+          "entityName": "Appointment",
+          "schema": {
+            "$ref": "#/backend/entities/Appointment"
+          },
+          "description": "Stores appointments scheduled with a doctor. Includes denormalized data (e.g., user's name) for authorization independence.",
+          "params": [
+            {
+              "name": "doctorId",
+              "description": "The unique identifier for the doctor."
+            },
+            {
+              "name": "appointmentId",
+              "description": "The unique identifier for the appointment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/appointments/{appointmentId}/consultation_summaries/{consultationSummaryId}",
+        "definition": {
+          "entityName": "ConsultationSummary",
+          "schema": {
+            "$ref": "#/backend/entities/ConsultationSummary"
+          },
+          "description": "Stores consultation summaries for a given appointment. Path-based ownership ensures that only the user who scheduled the appointment and the doctor can access the summary.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "appointmentId",
+              "description": "The unique identifier for the appointment."
+            },
+            {
+              "name": "consultationSummaryId",
+              "description": "The unique identifier for the consultation summary."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the DocConnect application, facilitating doctor profile creation, appointment scheduling, video call integration, and automated summarization. It emphasizes authorization independence, clarity, and secure `list` operations. Separate collections are used for `users` and `doctors` to maintain a homogeneous security posture, reflecting the different roles and access requirements. The `appointments` subcollection under each user and doctor ensures proper data segregation and simplifies ownership-based security rules. Denormalization of relevant user/doctor data within the appointment documents will be important for authorization independence. The `consultation_summaries` are stored as subcollections within appointments to maintain easy querying."
+  }
+}

@@ -1,0 +1,147 @@
+/**
+ * @fileOverview Firestore Security Rules for DocConnect.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user- and doctor-ownership model. Each user and doctor can only
+ * access their own profile data. Appointments are stored under both users and doctors to allow
+ * for easier querying and are secured based on ownership. Consultation summaries are also
+ * protected under the user's appointment path.
+ *
+ * Data Structure:
+ * - /users/{userId}: User profiles, accessible only by the user.
+ * - /doctors/{doctorId}: Doctor profiles, accessible only by the doctor.
+ * - /users/{userId}/appointments/{appointmentId}: Appointments scheduled by the user, accessible only by the user.
+ * - /doctors/{doctorId}/appointments/{appointmentId}: Appointments scheduled with the doctor, accessible only by the doctor.
+ * - /users/{userId}/appointments/{appointmentId}/consultation_summaries/{consultationSummaryId}: Consultation summaries, accessible only by the user.
+ *
+ * Key Security Decisions:
+ * - Users and doctors can only create, read, update, and delete their own profiles.
+ * - Appointments can only be created, read, updated, and deleted by the user or doctor involved.
+ * - Consultation summaries can only be created, read, updated, and deleted by the user who scheduled the appointment.
+ * - No user listing is allowed for privacy.
+ *
+ * Denormalization for Authorization:
+ * The rules assume that the 'Appointment' documents contain denormalized data such as user and doctor IDs.
+ * This avoids costly `get()` calls in the security rules.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Controls access to user profiles. Only the user can access their own profile.
+     * @path /users/{userId}
+     * @allow (create) User with ID 'user123' can create their profile.
+     *          Request: auth.uid = 'user123', resource.data.id = 'user123'
+     * @allow (get, update, delete) User with ID 'user123' can read, update, and delete their profile.
+     *          Request: auth.uid = 'user123'
+     * @deny (create) User with ID 'user456' cannot create a profile with ID 'user123'.
+     *          Request: auth.uid = 'user456', resource.data.id = 'user123'
+     * @deny (get, update, delete) User with ID 'user456' cannot read, update, or delete user 'user123's profile.
+     *          Request: auth.uid = 'user456'
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to doctor profiles. Only the doctor can access their own profile.
+     * @path /doctors/{doctorId}
+     * @allow (create) Doctor with ID 'doctor123' can create their profile.
+     *          Request: auth.uid = 'doctor123', resource.data.id = 'doctor123'
+     * @allow (get, update, delete) Doctor with ID 'doctor123' can read, update, and delete their profile.
+     *          Request: auth.uid = 'doctor123'
+     * @deny (create) Doctor with ID 'doctor456' cannot create a profile with ID 'doctor123'.
+     *          Request: auth.uid = 'doctor456', resource.data.id = 'doctor123'
+     * @deny (get, update, delete) Doctor with ID 'doctor456' cannot read, update, or delete doctor 'doctor123's profile.
+     *          Request: auth.uid = 'doctor456'
+     * @principle Enforces document ownership for writes.
+     */
+    match /doctors/{doctorId} {
+      allow get: if isOwner(doctorId);
+      allow list: if false;
+      allow create: if isOwner(doctorId) && request.resource.data.id == doctorId;
+      allow update: if isExistingOwner(doctorId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(doctorId);
+    }
+
+    /**
+     * @description Controls access to appointments scheduled by a user.
+     *              Only the user can create, read, update, and delete their own appointments.
+     * @path /users/{userId}/appointments/{appointmentId}
+     * @allow (create) User with ID 'user123' can create an appointment under their ID.
+     *          Request: auth.uid = 'user123', resource.data.userId = 'user123'
+     * @allow (get, update, delete) User with ID 'user123' can read, update, and delete an appointment under their ID.
+     *          Request: auth.uid = 'user123'
+     * @deny (create) User with ID 'user456' cannot create an appointment under user 'user123's ID.
+     *          Request: auth.uid = 'user456', resource.data.userId = 'user123'
+     * @deny (get, update, delete) User with ID 'user456' cannot read, update, or delete an appointment under user 'user123's ID.
+     *          Request: auth.uid = 'user456'
+     * @principle Enforces document ownership for writes and path consistency.
+     */
+    match /users/{userId}/appointments/{appointmentId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to appointments scheduled with a doctor.
+     *              Only the doctor can create, read, update, and delete appointments scheduled with them.
+     * @path /doctors/{doctorId}/appointments/{appointmentId}
+     * @allow (create) Doctor with ID 'doctor123' can create an appointment under their ID.
+     *          Request: auth.uid = 'doctor123', resource.data.doctorId = 'doctor123'
+     * @allow (get, update, delete) Doctor with ID 'doctor123' can read, update, and delete an appointment under their ID.
+     *          Request: auth.uid = 'doctor123'
+     * @deny (create) Doctor with ID 'doctor456' cannot create an appointment under doctor 'doctor123's ID.
+     *          Request: auth.uid = 'doctor456', resource.data.doctorId = 'doctor123'
+     * @deny (get, update, delete) Doctor with ID 'doctor456' cannot read, update, or delete an appointment under doctor 'doctor123's ID.
+     *          Request: auth.uid = 'doctor456'
+     * @principle Enforces document ownership for writes and path consistency.
+     */
+    match /doctors/{doctorId}/appointments/{appointmentId} {
+      allow get: if isOwner(doctorId);
+      allow list: if isOwner(doctorId);
+      allow create: if isOwner(doctorId) && request.resource.data.doctorId == doctorId;
+      allow update: if isExistingOwner(doctorId) && request.resource.data.doctorId == doctorId;
+      allow delete: if isExistingOwner(doctorId);
+    }
+
+    /**
+     * @description Controls access to consultation summaries.
+     *              Only the user who scheduled the appointment can access the consultation summary.
+     * @path /users/{userId}/appointments/{appointmentId}/consultation_summaries/{consultationSummaryId}
+     * @allow (create, get, update, delete) User with ID 'user123' can create, read, update, and delete a consultation summary under their appointment.
+     *          Request: auth.uid = 'user123'
+     * @deny (create, get, update, delete) User with ID 'user456' cannot create, read, update, or delete a consultation summary under user 'user123's appointment.
+     *          Request: auth.uid = 'user456'
+     * @principle Enforces document ownership for writes and path consistency.
+     */
+    match /users/{userId}/appointments/{appointmentId}/consultation_summaries/{consultationSummaryId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+    }
+  }
+}
