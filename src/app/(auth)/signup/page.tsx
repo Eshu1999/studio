@@ -16,7 +16,6 @@ import { useAuth } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
-  sendEmailVerification,
   signInWithPopup,
 } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -49,15 +48,12 @@ export default function SignupPage() {
     e.preventDefault();
     if (!auth) return;
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      if (userCredential.user) {
-        await sendEmailVerification(userCredential.user);
-        toast({
-          title: 'Verification Email Sent',
-          description: 'Please check your inbox to verify your email address.',
+      await createUserWithEmailAndPassword(auth, email, password);
+      toast({
+          title: 'Account Created',
+          description: "You've been successfully signed up!",
         });
-        router.push('/verify-email');
-      }
+      router.push('/dashboard');
     } catch (error: any) {
       toast({
         title: 'Sign-up Failed',

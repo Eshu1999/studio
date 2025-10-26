@@ -21,16 +21,10 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
 
     if (!user) {
       router.push('/login');
-    } else if (!user.emailVerified) {
-      // For Google Sign-in, email is usually pre-verified. 
-      // This check primarily targets email/password sign-ups.
-      if (user.providerData.some(p => p.providerId === 'password')) {
-         router.push('/verify-email');
-      }
     }
   }, [user, loading, router, isClient]);
 
-  if (loading || !user || (user.providerData.some(p => p.providerId === 'password') && !user.emailVerified)) {
+  if (loading || !user) {
     return (
       <div className="flex h-screen items-center justify-center">
         Loading...
