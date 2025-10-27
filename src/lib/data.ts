@@ -1,3 +1,4 @@
+
 import type { Doctor, Appointment, Patient } from './types';
 
 export const doctors: Doctor[] = [
@@ -13,6 +14,7 @@ export const doctors: Doctor[] = [
       '2024-07-31': ['10:00', '11:00', '12:00'],
     },
     imageId: 'doctor-1',
+    verificationStatus: 'verified',
   },
   {
     id: '2',
@@ -26,6 +28,7 @@ export const doctors: Doctor[] = [
       '2024-08-01': ['09:00', '10:00'],
     },
     imageId: 'doctor-2',
+    verificationStatus: 'verified',
   },
   {
     id: '3',
@@ -39,6 +42,7 @@ export const doctors: Doctor[] = [
       '2024-08-02': ['09:00', '10:00', '11:00'],
     },
     imageId: 'doctor-3',
+    verificationStatus: 'verified',
   },
   {
     id: '4',
@@ -52,6 +56,7 @@ export const doctors: Doctor[] = [
       '2024-08-02': ['14:00', '15:00', '16:00'],
     },
     imageId: 'doctor-4',
+    verificationStatus: 'pending',
   },
 ];
 
@@ -89,7 +94,7 @@ export const appointments: Appointment[] = [
     patientId: 'p4',
     patientName: 'Mary Johnson',
     date: '2024-07-28',
-    time: '11:00',
+    time: 'Upcoming',
     status: 'Upcoming',
   },
    {

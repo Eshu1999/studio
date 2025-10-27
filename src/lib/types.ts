@@ -1,3 +1,4 @@
+
 export type User = {
   id: string;
   role: 'patient' | 'doctor' | 'admin';
@@ -15,6 +16,7 @@ export type Doctor = {
   bio: string;
   availability: Record<string, string[]>;
   imageId: string;
+  verificationStatus: 'pending' | 'verified' | 'rejected';
 };
 
 export type Appointment = {

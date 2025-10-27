@@ -12,13 +12,16 @@ export default function DoctorsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const connectedDoctorIds = [...new Set(appointments.map(a => a.doctorId))];
     
-    const allDoctors = doctors.filter(doctor => 
+    // Filter for verified doctors first, then apply search
+    const verifiedDoctors = doctors.filter(doc => doc.verificationStatus === 'verified');
+
+    const searchedDoctors = verifiedDoctors.filter(doctor => 
         doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         doctor.specialization.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const connectedDoctors = allDoctors.filter(d => connectedDoctorIds.includes(d.id));
-    const otherDoctors = allDoctors.filter(d => !connectedDoctorIds.includes(d.id));
+    const connectedDoctors = searchedDoctors.filter(d => connectedDoctorIds.includes(d.id));
+    const otherDoctors = searchedDoctors.filter(d => !connectedDoctorIds.includes(d.id));
 
     return (
         <div className="flex flex-col gap-8">
@@ -65,7 +68,7 @@ export default function DoctorsPage() {
                 </section>
             )}
 
-            {allDoctors.length === 0 && (
+            {searchedDoctors.length === 0 && (
                 <div className="text-center text-muted-foreground py-12">
                     <p>No doctors found matching your search.</p>
                 </div>

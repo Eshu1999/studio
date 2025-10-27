@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -14,7 +15,8 @@ export default function DoctorProfilePage() {
   const params = useParams<{ id: string }>();
   const doctor = doctors.find((d) => d.id === params.id);
 
-  if (!doctor) {
+  // If the doctor is not found OR their account is not verified, show a 404 page.
+  if (!doctor || doctor.verificationStatus !== 'verified') {
     notFound();
   }
 
