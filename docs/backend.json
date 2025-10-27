@@ -69,9 +69,7 @@
         }
       },
       "required": [
-        "id",
-        "specialization",
-        "experienceYears"
+        "id"
       ]
     },
     "PatientProfile": {
@@ -224,7 +222,7 @@
           "schema": {
             "$ref": "#/backend/entities/DoctorProfile"
           },
-          "description": "Stores the professional profile for users with the 'doctor' role.",
+          "description": "Stores the professional profile for users with the 'doctor' role. Only the doctor themselves can read or write to this document.",
           "params": [
             {
               "name": "userId",
@@ -232,7 +230,7 @@
             },
             {
               "name": "profileId",
-              "description": "The unique identifier for the doctor profile."
+              "description": "The unique identifier for the doctor profile, should be the same as the userId."
             }
           ]
         }

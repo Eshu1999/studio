@@ -36,22 +36,14 @@ export default function SettingsPage() {
     () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
     [firestore, user]
   );
-  
-  const doctorProfileRef = useMemoFirebase(
-    () => (firestore && user && userData?.role === 'doctor' ? doc(firestore, `users/${user.uid}/doctorProfile`, user.uid) : null),
-    [firestore, user, userData]
-  );
 
   useEffect(() => {
     const fetchData = async () => {
-        if (userLoading) return;
-        if (!userDocRef) {
-            setLoading(false);
-            return;
-        }
+        setLoading(true);
+        if (userLoading || !firestore || !user) return;
 
         try {
-            const userDoc = await getDoc(userDocRef);
+            const userDoc = await getDoc(userDocRef!);
             if (userDoc.exists()) {
                 const data = userDoc.data();
                 setUserData(data);
@@ -62,13 +54,17 @@ export default function SettingsPage() {
                     if (profileDoc.exists()) {
                         setDoctorProfile(profileDoc.data());
                     } else {
-                        setDoctorProfile({}); // Init empty profile for new doctors
+                        // If no profile exists yet, initialize an empty object.
+                        // This allows the form to be interactive for a new doctor.
+                        setDoctorProfile({});
                     }
                 }
+            } else {
+                 toast({ title: "Error", description: "User data not found.", variant: "destructive" });
             }
         } catch (error) {
             console.error("Error fetching user data:", error);
-            toast({ title: "Error", description: "Could not fetch user data.", variant: "destructive" });
+            toast({ title: "Error", description: "Could not fetch your profile data.", variant: "destructive" });
         } finally {
             setLoading(false);
         }
@@ -95,26 +91,37 @@ export default function SettingsPage() {
         errorEmitter.emit('permission-error', permissionError);
       });
 
-    if (userData.role === 'doctor' && doctorProfileRef && doctorProfile) {
+    if (userData.role === 'doctor') {
+        if (!doctorProfile) {
+            toast({ title: "Error", description: "Doctor profile data is not ready.", variant: "destructive" });
+            return;
+        }
+        const doctorProfileRef = doc(firestore, `users/${user.uid}/doctorProfile`, user.uid);
         const doctorProfileData = {
             ...doctorProfile,
             id: user.uid,
         };
         setDoc(doctorProfileRef, doctorProfileData, { merge: true })
+          .then(() => {
+            toast({
+              title: 'Settings Saved',
+              description: 'Your changes have been saved successfully.',
+            });
+          })
           .catch(error => {
              const permissionError = new FirestorePermissionError({
                 path: doctorProfileRef.path,
-                operation: 'write',
+                operation: 'write', // 'write' covers both create and update
                 requestResourceData: doctorProfileData,
             });
             errorEmitter.emit('permission-error', permissionError);
           });
+    } else {
+        toast({
+          title: 'Settings Saved',
+          description: 'Your changes have been saved.',
+        });
     }
-
-    toast({
-      title: 'Settings Saved',
-      description: 'Your changes have been saved.',
-    });
   };
 
   const handleLogout = async () => {
