@@ -20,13 +20,14 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, LogOut } from 'lucide-react';
+import { Camera, LogOut, QrCode } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
+import QRCode from 'qrcode.react';
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -122,6 +123,13 @@ export default function SettingsPage() {
     }
   };
   
+  const getDoctorProfileUrl = () => {
+    if (typeof window !== 'undefined' && user) {
+        return `${window.location.origin}/doctors/${user.uid}`;
+    }
+    return '';
+  }
+
   if (loading || userLoading) {
     return <div className="flex h-full items-center justify-center">Loading Settings...</div>;
   }
@@ -188,6 +196,21 @@ export default function SettingsPage() {
                       <Input id="availability" value={doctorProfile?.availability || ''} onChange={(e) => setDoctorProfile({...doctorProfile, availability: e.target.value})} placeholder="e.g., Mon-Fri, 9am-5pm"/>
                     </div>
                  </div>
+              </div>
+            </>
+          )}
+
+          {userData?.role === 'doctor' && (
+            <>
+              <Separator />
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Your Profile QR Code</h3>
+                <p className="text-sm text-muted-foreground">
+                  Patients can scan this code to quickly access your profile and book an appointment.
+                </p>
+                <div className="p-4 bg-white rounded-md flex items-center justify-center max-w-xs mx-auto">
+                  {user && <QRCode value={getDoctorProfileUrl()} size={200} />}
+                </div>
               </div>
             </>
           )}

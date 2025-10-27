@@ -21,6 +21,7 @@ import {
   CircleHelp,
   Briefcase,
   CalendarClock,
+  QrCode,
 } from 'lucide-react';
 import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -32,6 +33,7 @@ const patientNavItems = [
   { href: '/appointments', icon: Calendar, label: 'Appointments' },
   { href: '/doctors', icon: Users, label: 'Doctors' },
   { href: '/consultations', icon: Video, label: 'Consultations' },
+  { href: '/scan', icon: QrCode, label: 'Scan QR' },
 ];
 
 const doctorNavItems = [
