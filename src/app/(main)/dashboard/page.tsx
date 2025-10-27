@@ -1,13 +1,15 @@
+
 'use client';
 
 import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import PatientDashboard from '@/components/patient-dashboard';
 import DoctorDashboard from '@/components/doctor-dashboard';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock } from 'lucide-react';
+import { Clock, FileCheck } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -68,14 +70,20 @@ export default function DashboardPage() {
                 </div>
                 <CardTitle>Verification Pending</CardTitle>
                 <CardDescription>
-                    Your account is currently under review by our administrative team.
+                    Your account is currently under review. Please submit your credentials to expedite the process.
                 </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col items-center">
                 <p className="text-sm text-muted-foreground">
-                    We are verifying your credentials as a medical professional. You will receive an email once the process is complete. You will not have access to doctor-specific features until your account is verified. Thank you for your patience.
+                    To complete your registration as a medical professional, please upload a copy of your medical license and provide your NPI number.
                 </p>
-                 <Button onClick={handleLogout} className="mt-6">Log Out</Button>
+                <Button asChild className="mt-6">
+                    <Link href="/verify-credentials">
+                        <FileCheck className="mr-2 h-4 w-4"/>
+                        Submit Credentials
+                    </Link>
+                </Button>
+                 <Button onClick={handleLogout} className="mt-4" variant="link">Log Out</Button>
             </CardContent>
         </Card>
       </div>
