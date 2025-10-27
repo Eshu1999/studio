@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -21,6 +22,17 @@ import {
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export default function SignupPage() {
   const auth = useAuth();
@@ -98,14 +110,28 @@ export default function SignupPage() {
               Create an account
             </Button>
           </form>
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={handleGoogleSignUp}
-          >
-            <Chrome className="mr-2 h-4 w-4" />
-            Sign up with Google
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="w-full">
+                <Chrome className="mr-2 h-4 w-4" />
+                Sign up with Google
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Sign up with Google</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will open a pop-up window to sign up with your Google account. Please ensure pop-ups are not blocked by your browser.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleGoogleSignUp}>
+                  Continue
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </CardContent>
         <div className="mt-4 p-6 pt-0 text-center text-sm">
           Already have an account?{' '}
