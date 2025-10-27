@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function PatientProfilePage() {
@@ -34,6 +35,7 @@ export default function PatientProfilePage() {
   const router = useRouter();
   const { user, loading: userLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [role, setRole] = useState<string | null>(null);
   const patient = patients.find((p) => p.id === params.id);
   
@@ -79,7 +81,7 @@ export default function PatientProfilePage() {
     } else if (!userLoading) {
       router.push('/dashboard');
     }
-  }, [userDocRef, userLoading, router, patient]);
+  }, [userDocRef, userLoading, router, patient, toast]);
 
 
   if (!patient) {
@@ -87,7 +89,7 @@ export default function PatientProfilePage() {
   }
 
   const patientAppointments = appointments.filter(
-    (apt) => apt.patientId === patient.id && apt.doctorId === user?.uid
+    (apt) => apt.patientId === patient.id
   ).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   
   if (userLoading || role !== 'doctor') {
@@ -130,7 +132,7 @@ export default function PatientProfilePage() {
         <div className="md:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Medical History with You</CardTitle>
+              <CardTitle>Medical History</CardTitle>
               <CardDescription>
                 A log of all consultations and summaries for {patient.name}.
               </CardDescription>
