@@ -21,16 +21,51 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 
 export default function PatientsPage() {
     const [searchTerm, setSearchTerm] = useState('');
+    const { user, loading: userLoading } = useUser();
+    const firestore = useFirestore();
+    const router = useRouter();
+    const [role, setRole] = useState<string | null>(null);
+
+    const userDocRef = useMemoFirebase(
+        () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
+        [firestore, user]
+    );
+
+    useEffect(() => {
+        if (userDocRef) {
+            getDoc(userDocRef)
+            .then((docSnap) => {
+                if (docSnap.exists()) {
+                    const userRole = docSnap.data().role;
+                    setRole(userRole);
+                    if (userRole !== 'doctor') {
+                        router.push('/dashboard');
+                    }
+                } else {
+                     router.push('/dashboard');
+                }
+            });
+        } else if (!userLoading) {
+            router.push('/dashboard');
+        }
+    }, [userDocRef, userLoading, router]);
 
     const filteredPatients = patients.filter(patient => 
         patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         patient.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    if (userLoading || role !== 'doctor') {
+        return <div className="flex h-full items-center justify-center">Loading or Access Denied...</div>;
+    }
 
   return (
     <div className="flex flex-col gap-6">
@@ -113,4 +148,3 @@ export default function PatientsPage() {
     </div>
   );
 }
-

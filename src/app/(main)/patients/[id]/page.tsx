@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { notFound, useParams } from 'next/navigation';
+import { notFound, useParams, useRouter } from 'next/navigation';
 import { patients, appointments, doctors } from '@/lib/data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -24,10 +24,43 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+
 
 export default function PatientProfilePage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const { user, loading: userLoading } = useUser();
+  const firestore = useFirestore();
+  const [role, setRole] = useState<string | null>(null);
   const patient = patients.find((p) => p.id === params.id);
+  
+  const userDocRef = useMemoFirebase(
+    () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
+    [firestore, user]
+  );
+
+  useEffect(() => {
+    if (userDocRef) {
+      getDoc(userDocRef)
+        .then((docSnap) => {
+          if (docSnap.exists()) {
+            const userRole = docSnap.data().role;
+            setRole(userRole);
+            if (userRole !== 'doctor') {
+              router.push('/dashboard');
+            }
+          } else {
+            router.push('/dashboard');
+          }
+        });
+    } else if (!userLoading) {
+      router.push('/dashboard');
+    }
+  }, [userDocRef, userLoading, router]);
+
 
   if (!patient) {
     notFound();
@@ -36,6 +69,10 @@ export default function PatientProfilePage() {
   const patientAppointments = appointments.filter(
     (apt) => apt.patientId === patient.id
   ).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  
+  if (userLoading || role !== 'doctor') {
+    return <div className="flex h-full items-center justify-center">Loading or Access Denied...</div>;
+  }
 
   return (
     <div className="container mx-auto max-w-5xl py-8">
@@ -137,4 +174,3 @@ export default function PatientProfilePage() {
     </div>
   );
 }
-
