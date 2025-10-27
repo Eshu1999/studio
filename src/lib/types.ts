@@ -19,8 +19,18 @@ export type Doctor = {
 export type Appointment = {
   id: string;
   doctorId: string;
+  patientId: string;
   patientName: string;
   date: string;
   time: string;
   status: 'Upcoming' | 'Completed' | 'Cancelled';
 };
+
+export type Patient = {
+    id: string;
+    name: string;
+    email: string;
+    avatar: string;
+    lastAppointment: string;
+    totalAppointments: number;
+}

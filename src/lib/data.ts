@@ -1,4 +1,4 @@
-import type { Doctor, Appointment } from './types';
+import type { Doctor, Appointment, Patient } from './types';
 
 export const doctors: Doctor[] = [
   {
@@ -59,6 +59,7 @@ export const appointments: Appointment[] = [
   {
     id: 'apt1',
     doctorId: '1',
+    patientId: 'p1',
     patientName: 'John Doe',
     date: '2024-07-29',
     time: '10:00',
@@ -67,6 +68,7 @@ export const appointments: Appointment[] = [
   {
     id: 'apt2',
     doctorId: '3',
+    patientId: 'p2',
     patientName: 'Jane Smith (Child: Leo)',
     date: '2024-07-30',
     time: '09:30',
@@ -75,6 +77,7 @@ export const appointments: Appointment[] = [
   {
     id: 'apt3',
     doctorId: '2',
+    patientId: 'p3',
     patientName: 'Peter Jones',
     date: '2024-07-25',
     time: '14:00',
@@ -83,9 +86,27 @@ export const appointments: Appointment[] = [
     {
     id: 'apt4',
     doctorId: '4',
+    patientId: 'p4',
     patientName: 'Mary Johnson',
     date: '2024-07-28',
     time: '11:00',
     status: 'Upcoming',
   },
+   {
+    id: 'apt5',
+    doctorId: '1',
+    patientId: 'p1',
+    patientName: 'John Doe',
+    date: '2024-06-15',
+    time: '11:00',
+    status: 'Completed',
+  },
+];
+
+
+export const patients: Patient[] = [
+    { id: 'p1', name: 'John Doe', email: 'john.doe@example.com', avatar: 'https://i.pravatar.cc/150?u=p1', lastAppointment: '2024-07-29', totalAppointments: 2 },
+    { id: 'p2', name: 'Jane Smith', email: 'jane.smith@example.com', avatar: 'https://i.pravatar.cc/150?u=p2', lastAppointment: '2024-07-30', totalAppointments: 1 },
+    { id: 'p3', name: 'Peter Jones', email: 'peter.jones@example.com', avatar: 'https://i.pravatar.cc/150?u=p3', lastAppointment: '2024-07-25', totalAppointments: 1 },
+    { id: 'p4', name: 'Mary Johnson', email: 'mary.johnson@example.com', avatar: 'https://i.pravatar.cc/150?u=p4', lastAppointment: '2024-07-28', totalAppointments: 1 },
 ];

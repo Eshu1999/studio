@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { notFound, useParams } from 'next/navigation';
-import { appointments, doctors } from '@/lib/data';
+import { appointments, doctors, patients } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +21,10 @@ export default function ConsultationPage() {
 
   const doctor = doctors.find((d) => d.id === appointment.doctorId);
   if (!doctor) notFound();
+  
+  const patient = patients.find(p => p.id === appointment.patientId);
+  if (!patient) notFound();
+
 
   const patientVideoImg = PlaceHolderImages.find((i) => i.id === 'patient-video');
   const doctorVideoImg = PlaceHolderImages.find((i) => i.id === 'doctor-video');
@@ -63,10 +67,10 @@ Doctor: Okay. Based on your symptoms, I'm concerned about angina. I'd like to sc
         </div>
         <div className="relative rounded-lg overflow-hidden bg-black">
           {patientVideoImg && (
-            <Image src={patientVideoImg.imageUrl} alt="Patient" layout="fill" objectFit="cover" data-ai-hint={patientVideoImg.imageHint} />
+            <Image src={patient.avatar} alt={patient.name} layout="fill" objectFit="cover" data-ai-hint={'person smiling'} />
           )}
           <div className="absolute bottom-2 left-2 bg-black/50 text-white text-sm px-2 py-1 rounded">
-            You
+            {patient.name}
           </div>
         </div>
       </div>

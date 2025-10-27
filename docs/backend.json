@@ -69,6 +69,28 @@
         "experienceYears"
       ]
     },
+    "PatientProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PatientProfile",
+      "type": "object",
+      "description": "Represents the profile of a user with the 'patient' role.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the PatientProfile, typically the same as the User UID."
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "format": "date",
+          "description": "The patient's date of birth."
+        },
+        "medicalHistorySummary": {
+          "type": "string",
+          "description": "A brief summary of the patient's medical history."
+        }
+      },
+      "required": ["id"]
+    },
     "Appointment": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Appointment",
@@ -110,6 +132,28 @@
         "endTime",
         "status"
       ]
+    },
+    "MedicalRecord": {
+      "title": "MedicalRecord",
+      "type": "object",
+      "description": "Represents a patient's comprehensive medical record, compiled from various interactions.",
+      "properties": {
+        "patientId": {
+          "type": "string",
+          "description": "The UID of the patient this record belongs to."
+        },
+        "appointments": {
+          "type": "array",
+          "items": { "$ref": "#/backend/entities/Appointment" },
+          "description": "A list of all appointments for the patient."
+        },
+        "summaries": {
+          "type": "array",
+          "items": { "$ref": "#/backend/entities/ConsultationSummary" },
+          "description": "A list of all consultation summaries for the patient."
+        }
+      },
+      "required": ["patientId"]
     },
     "ConsultationSummary": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -186,6 +230,14 @@
               "description": "The unique identifier for the doctor profile."
             }
           ]
+        }
+      },
+      {
+        "path": "/users/{userId}/patientProfile/{profileId}",
+        "definition": {
+          "entityName": "PatientProfile",
+          "schema": { "$ref": "#/backend/entities/PatientProfile"},
+          "description": "Stores the profile for users with the 'patient' role."
         }
       },
       {

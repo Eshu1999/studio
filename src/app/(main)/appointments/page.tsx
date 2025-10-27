@@ -26,6 +26,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Appointment } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 
 function AppointmentsTable({ appointmentsToShow }: { appointmentsToShow: Appointment[] }) {
   if (appointmentsToShow.length === 0) {
@@ -111,11 +114,98 @@ function AppointmentsTable({ appointmentsToShow }: { appointmentsToShow: Appoint
   );
 }
 
+function DoctorAppointmentsTable({ appointmentsToShow }: { appointmentsToShow: Appointment[] }) {
+    if (appointmentsToShow.length === 0) {
+    return (
+      <div className="text-center text-muted-foreground py-12">
+        <p>No appointments found in this category.</p>
+      </div>
+    )
+  }
+
+  return (
+     <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Patient</TableHead>
+          <TableHead className="hidden md:table-cell">Date & Time</TableHead>
+          <TableHead className="hidden sm:table-cell">Status</TableHead>
+          <TableHead className="text-right">Action</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {appointmentsToShow.map((apt) => {
+          return (
+            <TableRow key={apt.id}>
+              <TableCell>
+                <div className="font-medium">{apt.patientName}</div>
+              </TableCell>
+              <TableCell className="hidden md:table-cell">
+                <div>{new Date(apt.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                <div className="text-sm text-muted-foreground">{apt.time}</div>
+              </TableCell>
+              <TableCell className="hidden sm:table-cell">
+                <Badge 
+                    variant={apt.status === 'Completed' ? 'default' : apt.status === 'Cancelled' ? 'destructive' : 'secondary'}
+                    className={cn(apt.status === 'Upcoming' && 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300')}
+                >
+                    {apt.status}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-right">
+                {apt.status === 'Upcoming' && (
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/consultation/${apt.id}`}>
+                      Start Call
+                      <ArrowUpRight className="h-4 w-4 ml-2" />
+                    </Link>
+                  </Button>
+                )}
+                 {apt.status === 'Completed' && (
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href={`/consultation/${apt.id}`}>
+                      View Summary
+                      <Video className="h-4 w-4 ml-2" />
+                    </Link>
+                  </Button>
+                )}
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+  );
+}
+
 
 export default function AppointmentsPage() {
+  const { user, loading: userLoading } = useUser();
+  const firestore = useFirestore();
+  const [role, setRole] = useState<string | null>(null);
+
+  const userDocRef = useMemoFirebase(
+    () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
+    [firestore, user]
+  );
+  
+  useEffect(() => {
+    if (userDocRef) {
+      getDoc(userDocRef)
+        .then((docSnap) => {
+          if (docSnap.exists()) {
+            setRole(docSnap.data().role);
+          }
+        });
+    }
+  }, [userDocRef]);
+
+
   const upcomingAppointments = appointments.filter(a => a.status === 'Upcoming');
   const completedAppointments = appointments.filter(a => a.status === 'Completed');
   const cancelledAppointments = appointments.filter(a => a.status === 'Cancelled');
+  
+  const isDoctor = role === 'doctor';
 
   return (
     <div className="flex flex-col gap-6">
@@ -123,12 +213,14 @@ export default function AppointmentsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Appointments</h1>
           <p className="text-muted-foreground">
-            Manage your past and upcoming appointments.
+            {isDoctor ? "Manage your patient appointments." : "Manage your past and upcoming appointments."}
           </p>
         </div>
-        <Button asChild>
-          <Link href="/doctors">Book New Appointment</Link>
-        </Button>
+        { !isDoctor && 
+            <Button asChild>
+              <Link href="/doctors">Book New Appointment</Link>
+            </Button>
+        }
       </div>
 
        <Card>
@@ -142,18 +234,38 @@ export default function AppointmentsPage() {
                     <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
                 </TabsList>
             </div>
-            <TabsContent value="all" className="m-0">
-                <AppointmentsTable appointmentsToShow={appointments} />
-            </TabsContent>
-            <TabsContent value="upcoming" className="m-0">
-                <AppointmentsTable appointmentsToShow={upcomingAppointments} />
-            </TabsContent>
-            <TabsContent value="completed" className="m-0">
-                <AppointmentsTable appointmentsToShow={completedAppointments} />
-            </TabsContent>
-            <TabsContent value="cancelled" className="m-0">
-                <AppointmentsTable appointmentsToShow={cancelledAppointments} />
-            </TabsContent>
+            {isDoctor ? (
+                <>
+                 <TabsContent value="all" className="m-0">
+                    <DoctorAppointmentsTable appointmentsToShow={appointments} />
+                </TabsContent>
+                <TabsContent value="upcoming" className="m-0">
+                    <DoctorAppointmentsTable appointmentsToShow={upcomingAppointments} />
+                </TabsContent>
+                <TabsContent value="completed" className="m-0">
+                    <DoctorAppointmentsTable appointmentsToShow={completedAppointments} />
+                </TabsContent>
+                <TabsContent value="cancelled" className="m-0">
+                    <DoctorAppointmentsTable appointmentsToShow={cancelledAppointments} />
+                </TabsContent>
+                </>
+            ): (
+                <>
+                <TabsContent value="all" className="m-0">
+                    <AppointmentsTable appointmentsToShow={appointments} />
+                </TabsContent>
+                <TabsContent value="upcoming" className="m-0">
+                    <AppointmentsTable appointmentsToShow={upcomingAppointments} />
+                </TabsContent>
+                <TabsContent value="completed" className="m-0">
+                    <AppointmentsTable appointmentsToShow={completedAppointments} />
+                </TabsContent>
+                <TabsContent value="cancelled" className="m-0">
+                    <AppointmentsTable appointmentsToShow={cancelledAppointments} />
+                </TabsContent>
+                </>
+            )}
+            
           </Tabs>
         </CardContent>
       </Card>
