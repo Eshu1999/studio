@@ -43,15 +43,35 @@ export default function PatientProfilePage() {
   );
 
   useEffect(() => {
-    if (userDocRef) {
+    if (userDocRef && patient) {
       getDoc(userDocRef)
         .then((docSnap) => {
           if (docSnap.exists()) {
             const userRole = docSnap.data().role;
+            const currentUserId = docSnap.id;
             setRole(userRole);
+            
+            // Check if user is a doctor
             if (userRole !== 'doctor') {
               router.push('/dashboard');
+              return;
             }
+            
+            // Check if this doctor is connected to the patient
+            const isConnected = appointments.some(apt => 
+                apt.patientId === patient.id && apt.doctorId === currentUserId
+            );
+
+            if (!isConnected) {
+                // If not connected, redirect them.
+                toast({
+                    title: 'Access Denied',
+                    description: "You can only view profiles of patients you are connected with.",
+                    variant: 'destructive'
+                })
+                router.push('/patients');
+            }
+
           } else {
             router.push('/dashboard');
           }
@@ -59,7 +79,7 @@ export default function PatientProfilePage() {
     } else if (!userLoading) {
       router.push('/dashboard');
     }
-  }, [userDocRef, userLoading, router]);
+  }, [userDocRef, userLoading, router, patient]);
 
 
   if (!patient) {
@@ -67,7 +87,7 @@ export default function PatientProfilePage() {
   }
 
   const patientAppointments = appointments.filter(
-    (apt) => apt.patientId === patient.id
+    (apt) => apt.patientId === patient.id && apt.doctorId === user?.uid
   ).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   
   if (userLoading || role !== 'doctor') {
@@ -110,7 +130,7 @@ export default function PatientProfilePage() {
         <div className="md:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Medical History</CardTitle>
+              <CardTitle>Medical History with You</CardTitle>
               <CardDescription>
                 A log of all consultations and summaries for {patient.name}.
               </CardDescription>

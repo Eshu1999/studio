@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { patients } from '@/lib/data';
+import { patients, appointments } from '@/lib/data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowUpRight, Search } from 'lucide-react';
 import {
@@ -58,9 +58,12 @@ export default function PatientsPage() {
         }
     }, [userDocRef, userLoading, router]);
 
+    const connectedPatientIds = user ? [...new Set(appointments.filter(a => a.doctorId === user.uid).map(a => a.patientId))] : [];
+
     const filteredPatients = patients.filter(patient => 
-        patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient.email.toLowerCase().includes(searchTerm.toLowerCase())
+        connectedPatientIds.includes(patient.id) &&
+        (patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        patient.email.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     if (userLoading || role !== 'doctor') {
@@ -93,56 +96,62 @@ export default function PatientsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Patients</CardTitle>
+          <CardTitle>Connected Patients</CardTitle>
           <CardDescription>
-            You have {filteredPatients.length} active patients.
+            You have {filteredPatients.length} connected patients.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Patient</TableHead>
-                <TableHead className="hidden md:table-cell">Last Appointment</TableHead>
-                <TableHead className="hidden sm:table-cell">Total Consultations</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredPatients.map((patient) => (
-                <TableRow key={patient.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9">
-                        <AvatarImage src={patient.avatar} alt={patient.name} />
-                        <AvatarFallback>{patient.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">{patient.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {patient.email}
+          {filteredPatients.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Patient</TableHead>
+                  <TableHead className="hidden md:table-cell">Last Appointment</TableHead>
+                  <TableHead className="hidden sm:table-cell">Total Consultations</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredPatients.map((patient) => (
+                  <TableRow key={patient.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9">
+                          <AvatarImage src={patient.avatar} alt={patient.name} />
+                          <AvatarFallback>{patient.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium">{patient.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {patient.email}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {new Date(patient.lastAppointment).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    {patient.totalAppointments}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/patients/${patient.id}`}>
-                        View Profile
-                        <ArrowUpRight className="h-4 w-4 ml-2" />
-                      </Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {new Date(patient.lastAppointment).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      {appointments.filter(a => a.patientId === patient.id && a.doctorId === user?.uid).length}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/patients/${patient.id}`}>
+                          View Profile
+                          <ArrowUpRight className="h-4 w-4 ml-2" />
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              <p>You have no patients yet.</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
