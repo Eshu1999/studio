@@ -17,22 +17,12 @@ import { useAuth } from '@/firebase';
 import {
   GoogleAuthProvider,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
 } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+
 
 export default function LoginPage() {
   const auth = useAuth();
@@ -40,14 +30,21 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
 
   const handleGoogleSignIn = async () => {
     if (!auth) return;
+    setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      router.push('/dashboard');
+      // Use signInWithRedirect instead of signInWithPopup
+      await signInWithRedirect(auth, provider);
+      // The user will be redirected to Google's sign-in page.
+      // After successful sign-in, they will be redirected back to the app.
+      // The onAuthStateChanged listener will then handle routing.
     } catch (error: any) {
+      setLoading(false);
       toast({
         title: 'Sign-in Error',
         description: error.message,
@@ -55,6 +52,7 @@ export default function LoginPage() {
       });
     }
   };
+
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,28 +121,10 @@ export default function LoginPage() {
               Login
             </Button>
           </form>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" className="w-full">
-                <Chrome className="mr-2 h-4 w-4" />
-                Sign in with Google
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Sign in with Google</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will open a pop-up window to sign in with your Google account. Please ensure pop-ups are not blocked by your browser.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleGoogleSignIn}>
-                  Continue
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={loading}>
+            <Chrome className="mr-2 h-4 w-4" />
+            {loading ? 'Redirecting...' : 'Sign in with Google'}
+          </Button>
         </CardContent>
         <div className="mt-4 p-6 pt-0 text-center text-sm">
           Don&apos;t have an account?{' '}
