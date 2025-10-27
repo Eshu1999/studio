@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { User, Stethoscope } from 'lucide-react';
+import { errorEmitter, FirestorePermissionError } from '@/firebase';
 
 export default function CompleteProfilePage() {
   const auth = useAuth();
@@ -49,36 +50,36 @@ export default function CompleteProfilePage() {
         return;
     }
 
-    try {
-      const userRef = doc(firestore, 'users', user.uid);
-      
-      const userData: any = {
-        id: user.uid,
-        email: user.email,
-        firstName,
-        lastName,
-        role: role,
-      };
+    const userRef = doc(firestore, 'users', user.uid);
+    
+    const userData: any = {
+      id: user.uid,
+      email: user.email,
+      firstName,
+      lastName,
+      role: role,
+    };
 
-      if (role === 'doctor') {
-        userData.verificationStatus = 'pending';
-      }
-
-      await setDoc(userRef, userData, { merge: true });
-
-      toast({
-        title: 'Profile Complete!',
-        description: 'Your profile has been set up.',
-      });
-
-      router.push('/dashboard');
-    } catch (error: any) {
-      toast({
-        title: 'Profile setup failed',
-        description: error.message,
-        variant: 'destructive',
-      });
+    if (role === 'doctor') {
+      userData.verificationStatus = 'pending';
     }
+
+    setDoc(userRef, userData, { merge: true })
+      .then(() => {
+        toast({
+          title: 'Profile Complete!',
+          description: 'Your profile has been set up.',
+        });
+        router.push('/dashboard');
+      })
+      .catch((error) => {
+        const permissionError = new FirestorePermissionError({
+            path: userRef.path,
+            operation: 'write',
+            requestResourceData: userData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
   };
 
   return (

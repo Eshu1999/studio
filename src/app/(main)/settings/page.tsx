@@ -22,7 +22,7 @@ import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera, LogOut, QrCode } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { useAuth, useUser, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -76,33 +76,43 @@ export default function SettingsPage() {
   }, [userDocRef, doctorProfileRef, userLoading]);
 
   const handleSaveChanges = async () => {
-    if (!user || !firestore || !userData) return;
-    try {
-      if (userDocRef) {
-        await setDoc(userDocRef, {
-          firstName: userData.firstName,
-          lastName: userData.lastName
-        }, { merge: true });
-      }
+    if (!user || !firestore || !userData || !userDocRef) return;
+    
+    const userProfileData = {
+      firstName: userData.firstName,
+      lastName: userData.lastName
+    };
 
-      if (userData.role === 'doctor' && doctorProfileRef && doctorProfile) {
-        await setDoc(doctorProfileRef, {
+    setDoc(userDocRef, userProfileData, { merge: true })
+      .catch(error => {
+        const permissionError = new FirestorePermissionError({
+            path: userDocRef.path,
+            operation: 'update',
+            requestResourceData: userProfileData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
+
+    if (userData.role === 'doctor' && doctorProfileRef && doctorProfile) {
+        const doctorProfileData = {
             ...doctorProfile,
             id: user.uid,
-        }, { merge: true });
-      }
-
-      toast({
-        title: 'Settings Saved',
-        description: 'Your changes have been saved successfully.',
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: `Failed to save changes: ${error.message}`,
-        variant: 'destructive',
-      });
+        };
+        setDoc(doctorProfileRef, doctorProfileData, { merge: true })
+          .catch(error => {
+             const permissionError = new FirestorePermissionError({
+                path: doctorProfileRef.path,
+                operation: 'write',
+                requestResourceData: doctorProfileData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+          });
     }
+
+    toast({
+      title: 'Settings Saved',
+      description: 'Your changes are being saved.',
+    });
   };
 
   const handleLogout = async () => {
