@@ -51,13 +51,20 @@ export default function CompleteProfilePage() {
 
     try {
       const userRef = doc(firestore, 'users', user.uid);
-      await setDoc(userRef, {
+      
+      const userData: any = {
         id: user.uid,
         email: user.email,
         firstName,
         lastName,
         role: role,
-      }, { merge: true });
+      };
+
+      if (role === 'doctor') {
+        userData.verificationStatus = 'pending';
+      }
+
+      await setDoc(userRef, userData, { merge: true });
 
       toast({
         title: 'Profile Complete!',

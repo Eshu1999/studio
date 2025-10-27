@@ -1,9 +1,10 @@
 export type User = {
   id: string;
-  role: 'patient' | 'doctor';
+  role: 'patient' | 'doctor' | 'admin';
   firstName?: string;
   lastName?: string;
   email?: string;
+  verificationStatus?: 'pending' | 'verified' | 'rejected';
 }
 
 export type Doctor = {

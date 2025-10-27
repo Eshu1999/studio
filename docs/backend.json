@@ -26,7 +26,12 @@
         "role": {
           "type": "string",
           "description": "The role of the user within the application.",
-          "enum": ["patient", "doctor"]
+          "enum": ["patient", "doctor", "admin"]
+        },
+        "verificationStatus": {
+          "type": "string",
+          "description": "The verification status for a doctor account.",
+          "enum": ["pending", "verified", "rejected"]
         }
       },
       "required": [
