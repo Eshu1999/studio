@@ -10,17 +10,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, LogOut, QrCode } from 'lucide-react';
+import { Camera, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useUser, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -46,34 +38,44 @@ export default function SettingsPage() {
   );
   
   const doctorProfileRef = useMemoFirebase(
-    () => (firestore && user ? doc(firestore, `users/${user.uid}/doctorProfile`, user.uid) : null),
-    [firestore, user]
+    () => (firestore && user && userData?.role === 'doctor' ? doc(firestore, `users/${user.uid}/doctorProfile`, user.uid) : null),
+    [firestore, user, userData]
   );
-
 
   useEffect(() => {
     const fetchData = async () => {
-      if (userDocRef) {
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          setUserData(data);
-          if (data.role === 'doctor' && doctorProfileRef) {
-            const profileDoc = await getDoc(doctorProfileRef);
-            if (profileDoc.exists()) {
-              setDoctorProfile(profileDoc.data());
-            } else {
-              setDoctorProfile({}); // Init empty profile for new doctors
-            }
-          }
+        if (userLoading) return;
+        if (!userDocRef) {
+            setLoading(false);
+            return;
         }
-      }
-      setLoading(false);
+
+        try {
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+                const data = userDoc.data();
+                setUserData(data);
+
+                if (data.role === 'doctor') {
+                    const profileRef = doc(firestore, `users/${user.uid}/doctorProfile`, user.uid);
+                    const profileDoc = await getDoc(profileRef);
+                    if (profileDoc.exists()) {
+                        setDoctorProfile(profileDoc.data());
+                    } else {
+                        setDoctorProfile({}); // Init empty profile for new doctors
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching user data:", error);
+            toast({ title: "Error", description: "Could not fetch user data.", variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
     };
-    if (!userLoading) {
-      fetchData();
-    }
-  }, [userDocRef, doctorProfileRef, userLoading]);
+
+    fetchData();
+  }, [userDocRef, userLoading, user, firestore, toast]);
 
   const handleSaveChanges = async () => {
     if (!user || !firestore || !userData || !userDocRef) return;
@@ -111,7 +113,7 @@ export default function SettingsPage() {
 
     toast({
       title: 'Settings Saved',
-      description: 'Your changes are being saved.',
+      description: 'Your changes have been saved.',
     });
   };
 
@@ -187,7 +189,7 @@ export default function SettingsPage() {
             </div>
           </div>
           
-          {userData?.role === 'doctor' && doctorProfile && (
+          {userData?.role === 'doctor' && doctorProfile !== null && (
             <>
               <Separator />
               <div className="space-y-4">
