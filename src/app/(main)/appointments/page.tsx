@@ -216,10 +216,15 @@ export default function AppointmentsPage() {
             {isDoctor ? "Manage your patient appointments." : "Manage your past and upcoming appointments."}
           </p>
         </div>
-        { !isDoctor && 
+        { !isDoctor ? (
             <Button asChild>
               <Link href="/doctors">Book New Appointment</Link>
             </Button>
+        ) : (
+            <Button asChild>
+                <Link href="/availability">Manage Availability</Link>
+            </Button>
+        )
         }
       </div>
 
