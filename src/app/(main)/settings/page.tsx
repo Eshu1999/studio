@@ -79,6 +79,7 @@ export default function SettingsPage() {
     if (!user || !firestore || !userData || !userDocRef) return;
     
     const userProfileData = {
+      username: userData.username,
       firstName: userData.firstName,
       lastName: userData.lastName
     };
@@ -185,7 +186,7 @@ export default function SettingsPage() {
           
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
-            <Input id="username" value={userData?.username || ''} disabled />
+            <Input id="username" value={userData?.username || ''} onChange={(e) => setUserData({...userData, username: e.target.value})} />
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
@@ -269,5 +270,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
