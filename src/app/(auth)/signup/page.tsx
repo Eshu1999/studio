@@ -12,16 +12,13 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { HeartPulse, Chrome } from 'lucide-react';
+import { HeartPulse } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
-  getRedirectResult,
-  GoogleAuthProvider,
-  signInWithRedirect,
 } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SignupPage() {
@@ -30,53 +27,6 @@ export default function SignupPage() {
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!auth) return;
-
-    setLoading(true);
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result) {
-          // User is signed in.
-          // New users (or existing users) are redirected to complete their profile.
-          router.push('/complete-profile');
-        }
-      })
-      .catch((error) => {
-        // Handle Errors here.
-        console.error("Google sign-up redirect error", error);
-        toast({
-          title: 'Sign-up Error',
-          description: error.message,
-          variant: 'destructive',
-        });
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [auth, router, toast]);
-
-  const handleGoogleSignUp = async () => {
-    if (!auth) return;
-    setLoading(true);
-    const provider = new GoogleAuthProvider();
-    try {
-      // Use signInWithRedirect instead of signInWithPopup
-      await signInWithRedirect(auth, provider);
-      // The user will be redirected to Google's sign-in page.
-      // After successful sign-in, they will be redirected back to the app.
-      // The onAuthStateChanged listener will then handle routing to /complete-profile.
-    } catch (error: any) {
-      setLoading(false);
-      toast({
-        title: 'Sign-up Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  };
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,10 +82,6 @@ export default function SignupPage() {
               Create an account
             </Button>
           </form>
-          <Button variant="outline" className="w-full" onClick={handleGoogleSignUp} disabled={loading}>
-            <Chrome className="mr-2 h-4 w-4" />
-            {loading ? 'Redirecting...' : 'Sign up with Google'}
-          </Button>
         </CardContent>
         <div className="mt-4 p-6 pt-0 text-center text-sm">
           Already have an account?{' '}
