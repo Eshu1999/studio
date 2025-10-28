@@ -32,6 +32,7 @@ export default function CompleteProfilePage() {
   const { toast } = useToast();
 
   const [role, setRole] = useState<'patient' | 'doctor' | ''>('');
+  const [username, setUsername] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
 
@@ -45,8 +46,8 @@ export default function CompleteProfilePage() {
       toast({ title: 'Error', description: 'Please select a role.', variant: 'destructive' });
       return;
     }
-    if (!firstName || !lastName) {
-        toast({ title: 'Error', description: 'Please enter your first and last name.', variant: 'destructive' });
+    if (!username || !firstName || !lastName) {
+        toast({ title: 'Error', description: 'Please fill out all fields.', variant: 'destructive' });
         return;
     }
 
@@ -55,6 +56,7 @@ export default function CompleteProfilePage() {
     const userData: any = {
       id: user.uid,
       email: user.email,
+      username,
       firstName,
       lastName,
       role: role,
@@ -93,6 +95,10 @@ export default function CompleteProfilePage() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="grid gap-6">
+             <div className="grid gap-2">
+                <Label htmlFor="username">Username</Label>
+                <Input id="username" placeholder="maxrobinson" required value={username} onChange={(e) => setUsername(e.target.value)} />
+            </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                     <Label htmlFor="first-name">First name</Label>
@@ -148,3 +154,5 @@ export default function CompleteProfilePage() {
     </div>
   );
 }
+
+    

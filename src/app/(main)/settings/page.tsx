@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -40,10 +41,13 @@ export default function SettingsPage() {
   useEffect(() => {
     const fetchData = async () => {
         setLoading(true);
-        if (userLoading || !firestore || !user) return;
+        if (userLoading || !firestore || !user || !userDocRef) {
+          if (!userLoading) setLoading(false);
+          return;
+        }
 
         try {
-            const userDoc = await getDoc(userDocRef!);
+            const userDoc = await getDoc(userDocRef);
             if (userDoc.exists()) {
                 const data = userDoc.data();
                 setUserData(data);
@@ -54,8 +58,6 @@ export default function SettingsPage() {
                     if (profileDoc.exists()) {
                         setDoctorProfile(profileDoc.data());
                     } else {
-                        // If no profile exists yet, initialize an empty object.
-                        // This allows the form to be interactive for a new doctor.
                         setDoctorProfile({});
                     }
                 }
@@ -180,6 +182,11 @@ export default function SettingsPage() {
                 Change Picture
             </Button>
           </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <Input id="username" value={userData?.username || ''} disabled />
+          </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -262,3 +269,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    

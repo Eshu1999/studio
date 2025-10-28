@@ -11,6 +11,10 @@
           "type": "string",
           "description": "Unique identifier for the User entity. This should be the Firebase Auth UID."
         },
+        "username": {
+          "type": "string",
+          "description": "The user's unique username."
+        },
         "firstName": {
           "type": "string",
           "description": "First name of the user."
@@ -38,7 +42,8 @@
       "required": [
         "id",
         "email",
-        "role"
+        "role",
+        "username"
       ]
     },
     "DoctorProfile": {
@@ -193,8 +198,7 @@
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {
@@ -207,6 +211,10 @@
             "$ref": "#/backend/entities/User"
           },
           "description": "Stores all user profiles, for both patients and doctors. The 'role' field distinguishes them. Path-based ownership ensures users can only access their own profile data.",
+          "security": {
+            "read": "request.auth.uid == userId",
+            "write": "request.auth.uid == userId"
+          },
           "params": [
             {
               "name": "userId",
@@ -223,6 +231,10 @@
             "$ref": "#/backend/entities/DoctorProfile"
           },
           "description": "Stores the professional profile for users with the 'doctor' role. Only the doctor themselves can read or write to this document.",
+          "security": {
+            "read": "request.auth.uid == userId",
+            "write": "request.auth.uid == userId"
+          },
           "params": [
             {
               "name": "userId",
@@ -283,3 +295,5 @@
     "reasoning": "The Firestore structure is designed to support a role-based application (patients and doctors). A single `/users` collection is used for authentication and basic profile data, with a `role` field to differentiate. Doctor-specific professional data is stored in a subcollection `/users/{userId}/doctorProfile` to keep the main user document lean. Appointments are in a top-level collection for easier querying by both patients and doctors, with security rules ensuring that only involved parties can access the appointment details. This structure is scalable and secure."
   }
 }
+
+    

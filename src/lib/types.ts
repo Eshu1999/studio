@@ -2,6 +2,7 @@
 export type User = {
   id: string;
   role: 'patient' | 'doctor' | 'admin';
+  username?: string;
   firstName?: string;
   lastName?: string;
   email?: string;
@@ -37,3 +38,5 @@ export type Patient = {
     lastAppointment: string;
     totalAppointments: number;
 }
+
+    
