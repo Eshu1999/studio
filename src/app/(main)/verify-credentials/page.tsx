@@ -15,10 +15,14 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
+import { useUser, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 export default function VerifyCredentialsPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
   const [npiNumber, setNpiNumber] = useState('');
   const [fileName, setFileName] = useState('');
 
@@ -40,18 +44,34 @@ export default function VerifyCredentialsPage() {
       });
       return;
     }
+    
+    if (!user || !firestore) {
+      toast({ title: "Error", description: "You must be logged in to submit credentials.", variant: "destructive"});
+      return;
+    }
 
     // In a real application, you would upload the file to Firebase Storage
-    // and save the NPI number and file path to the user's profile in Firestore.
-    console.log('Submitting for verification:', { npiNumber, fileName });
+    const doctorProfileRef = doc(firestore, `users/${user.uid}/doctorProfile/${user.uid}`);
+    const doctorProfileData = { npiNumber: npiNumber };
 
-    toast({
-      title: 'Credentials Submitted',
-      description: 'Thank you. Your documents have been submitted for review. You will be notified via email upon verification.',
-    });
+    try {
+        setDoc(doctorProfileRef, doctorProfileData, { merge: true });
+        
+        toast({
+          title: 'Credentials Submitted',
+          description: 'Your profile will be reviewed by our support team to verify your account.',
+        });
 
-    // Redirect the user back to the dashboard where they will see the pending message.
-    router.push('/dashboard');
+        router.push('/dashboard');
+
+    } catch (error) {
+        const permissionError = new FirestorePermissionError({
+            path: `users/${user.uid}/doctorProfile/${user.uid}`,
+            operation: 'write',
+            requestResourceData: {npiNumber},
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    }
   };
 
   return (
