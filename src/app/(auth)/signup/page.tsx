@@ -16,11 +16,12 @@ import { HeartPulse, Chrome } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
+  getRedirectResult,
   GoogleAuthProvider,
   signInWithRedirect,
 } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SignupPage() {
@@ -30,6 +31,32 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!auth) return;
+
+    setLoading(true);
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          // User is signed in.
+          // New users (or existing users) are redirected to complete their profile.
+          router.push('/complete-profile');
+        }
+      })
+      .catch((error) => {
+        // Handle Errors here.
+        console.error("Google sign-up redirect error", error);
+        toast({
+          title: 'Sign-up Error',
+          description: error.message,
+          variant: 'destructive',
+        });
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [auth, router, toast]);
 
   const handleGoogleSignUp = async () => {
     if (!auth) return;

@@ -16,6 +16,7 @@ import { HeartPulse, Chrome } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import {
   GoogleAuthProvider,
+  getRedirectResult,
   signInWithEmailAndPassword,
   signInWithRedirect,
 } from 'firebase/auth';
@@ -31,6 +32,33 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!auth) return;
+
+    setLoading(true);
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          // This is the signed-in user
+          const user = result.user;
+          // You can now redirect to the dashboard or complete-profile
+          router.push('/dashboard');
+        }
+      })
+      .catch((error) => {
+        // Handle Errors here.
+        console.error("Google sign-in redirect error", error);
+        toast({
+          title: 'Sign-in Error',
+          description: error.message,
+          variant: 'destructive',
+        });
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [auth, router, toast]);
 
 
   const handleGoogleSignIn = async () => {
