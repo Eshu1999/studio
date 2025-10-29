@@ -19,7 +19,8 @@ export default function DashboardPage() {
   const auth = useAuth();
   const router = useRouter();
 
-  const [userData, setUserData] = useState<{ role: string, verificationStatus?: string, npiNumber?: string } | null>(null);
+  const [userData, setUserData] = useState<{ role: string, verificationStatus?: string } | null>(null);
+  const [doctorProfile, setDoctorProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const userDocRef = useMemoFirebase(
@@ -33,20 +34,19 @@ export default function DashboardPage() {
         const userDocSnap = await getDoc(userDocRef);
         if (userDocSnap.exists()) {
           const data = userDocSnap.data();
-          let npiNumber;
+          let profileData = null;
 
           if (data.role === 'doctor') {
             const doctorProfileRef = doc(firestore, `users/${user!.uid}/doctorProfile/${user!.uid}`);
             const doctorProfileSnap = await getDoc(doctorProfileRef);
             if (doctorProfileSnap.exists()) {
-              npiNumber = doctorProfileSnap.data().npiNumber;
+              profileData = doctorProfileSnap.data();
             }
           }
-
+          setDoctorProfile(profileData);
           setUserData({
             role: data.role,
             verificationStatus: data.verificationStatus,
-            npiNumber: npiNumber,
           });
         }
         setLoading(false);
@@ -70,7 +70,7 @@ export default function DashboardPage() {
   }
 
   if (userData?.role === 'doctor' && userData?.verificationStatus === 'pending') {
-    const hasSubmittedCredentials = !!userData.npiNumber;
+    const hasSubmittedCredentials = !!doctorProfile?.medicalCouncilId;
 
     return (
       <div className="flex h-full items-center justify-center">
@@ -90,8 +90,8 @@ export default function DashboardPage() {
             <CardContent className="flex flex-col items-center">
                 <p className="text-sm text-muted-foreground">
                     {hasSubmittedCredentials
-                        ? "Thank you for submitting your credentials. We'll notify you once the verification is complete."
-                        : "To complete your registration as a medical professional, please upload a copy of your medical license and provide your NPI number."
+                        ? "Thank you for submitting your credentials. We'll notify you via email after we've reviewed your submission. The next step will be a one-on-one video call."
+                        : "To complete your registration as a medical professional, please provide your full name, state of registration, medical ID, and a copy of your license."
                     }
                 </p>
                 {hasSubmittedCredentials ? (

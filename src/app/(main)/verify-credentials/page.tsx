@@ -23,7 +23,9 @@ export default function VerifyCredentialsPage() {
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
-  const [npiNumber, setNpiNumber] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [stateOfRegistration, setStateOfRegistration] = useState('');
+  const [medicalCouncilId, setMedicalCouncilId] = useState('');
   const [fileName, setFileName] = useState('');
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,10 +38,10 @@ export default function VerifyCredentialsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!npiNumber || !fileName) {
+    if (!fullName || !stateOfRegistration || !medicalCouncilId || !fileName) {
       toast({
         title: 'Missing Information',
-        description: 'Please provide your NPI number and upload your medical license.',
+        description: 'Please fill out all fields and upload your medical license.',
         variant: 'destructive',
       });
       return;
@@ -52,10 +54,22 @@ export default function VerifyCredentialsPage() {
 
     // In a real application, you would upload the file to Firebase Storage
     const doctorProfileRef = doc(firestore, `users/${user.uid}/doctorProfile/${user.uid}`);
-    const doctorProfileData = { npiNumber: npiNumber };
+    const doctorProfileData = { 
+        fullName,
+        stateOfRegistration,
+        medicalCouncilId,
+        licenseDocument: fileName, // In a real app, this would be the storage URL
+        manualVerificationRequired: false,
+    };
+
+    const userRef = doc(firestore, 'users', user.uid);
+    const userData = {
+        verificationStatus: 'pending'
+    };
 
     try {
         setDoc(doctorProfileRef, doctorProfileData, { merge: true });
+        setDoc(userRef, userData, { merge: true });
         
         toast({
           title: 'Credentials Submitted',
@@ -68,7 +82,7 @@ export default function VerifyCredentialsPage() {
         const permissionError = new FirestorePermissionError({
             path: `users/${user.uid}/doctorProfile/${user.uid}`,
             operation: 'write',
-            requestResourceData: {npiNumber},
+            requestResourceData: doctorProfileData,
         });
         errorEmitter.emit('permission-error', permissionError);
     }
@@ -88,19 +102,41 @@ export default function VerifyCredentialsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6">
-            <div className="grid gap-2">
-              <Label htmlFor="npi-number">National Provider Identifier (NPI)</Label>
+             <div className="grid gap-2">
+              <Label htmlFor="full-name">Full Name</Label>
               <Input
-                id="npi-number"
-                placeholder="Enter your 10-digit NPI number"
+                id="full-name"
+                placeholder="Enter your full name as on your license"
                 required
-                value={npiNumber}
-                onChange={(e) => setNpiNumber(e.target.value)}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
               />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="medical-council-id">Medical Council ID</Label>
+                  <Input
+                    id="medical-council-id"
+                    placeholder="e.g., 12345"
+                    required
+                    value={medicalCouncilId}
+                    onChange={(e) => setMedicalCouncilId(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="state-of-registration">State of Registration</Label>
+                  <Input
+                    id="state-of-registration"
+                    placeholder="e.g., California"
+                    required
+                    value={stateOfRegistration}
+                    onChange={(e) => setStateOfRegistration(e.target.value)}
+                  />
+                </div>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="license-file">Medical License</Label>
+              <Label htmlFor="license-file">Medical License Document</Label>
               <div className="flex items-center gap-2">
                 <Label
                   htmlFor="license-file-upload"
