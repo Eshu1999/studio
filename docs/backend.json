@@ -42,8 +42,7 @@
       "required": [
         "id",
         "email",
-        "role",
-        "username"
+        "role"
       ]
     },
     "DoctorProfile": {
@@ -95,7 +94,7 @@
         }
       },
       "required": [
-        "id", "fullName", "stateOfRegistration", "medicalCouncilId"
+        "id", "fullName", "stateOfRegistration", "medicalCouncilId", "licenseDocument"
       ]
     },
     "PatientProfile": {

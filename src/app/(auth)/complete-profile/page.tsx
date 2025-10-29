@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth, useUser, useFirestore } from '@/firebase';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth, useUser, useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,29 +20,48 @@ import {
   RadioGroupItem,
 } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { User, Stethoscope } from 'lucide-react';
-import { errorEmitter, FirestorePermissionError } from '@/firebase';
+import { User as UserIcon, Stethoscope } from 'lucide-react';
+import { useEffect } from 'react';
 
 export default function CompleteProfilePage() {
   const auth = useAuth();
   const { user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
 
   const [role, setRole] = useState<'patient' | 'doctor' | ''>('');
   const [username, setUsername] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [step, setStep] = useState<'role' | 'patient' | 'doctor'>('role');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    const roleFromQuery = searchParams.get('role');
+    if (roleFromQuery === 'patient') {
+      setRole('patient');
+      setStep('patient');
+    }
+  }, [searchParams]);
+
+  const handleRoleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!role) {
+      toast({ title: 'Error', description: 'Please select a role.', variant: 'destructive' });
+      return;
+    }
+    if (role === 'patient') {
+      setStep('patient');
+    } else {
+      router.push('/verify-credentials');
+    }
+  };
+
+  const handlePatientSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !firestore) {
       toast({ title: 'Error', description: 'You must be logged in.', variant: 'destructive' });
-      return;
-    }
-    if (!role) {
-      toast({ title: 'Error', description: 'Please select a role.', variant: 'destructive' });
       return;
     }
     if (!username || !firstName || !lastName) {
@@ -58,12 +77,8 @@ export default function CompleteProfilePage() {
       username,
       firstName,
       lastName,
-      role: role,
+      role: 'patient',
     };
-
-    if (role === 'doctor') {
-      userData.verificationStatus = 'pending';
-    }
 
     setDoc(userRef, userData, { merge: true })
       .then(() => {
@@ -83,16 +98,65 @@ export default function CompleteProfilePage() {
       });
   };
 
-  return (
-    <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-lg">
+  const renderRoleSelection = () => (
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle className="text-2xl">Choose Your Role</CardTitle>
+        <CardDescription>
+          Select whether you are joining as a patient or a doctor.
+        </CardDescription>
+      </CardHeader>
+      <form onSubmit={handleRoleSubmit}>
+        <CardContent className="grid gap-4">
+          <RadioGroup
+            value={role}
+            onValueChange={(value) => setRole(value as 'patient' | 'doctor')}
+            className="grid grid-cols-2 gap-4"
+          >
+            <div>
+              <RadioGroupItem value="patient" id="patient" className="peer sr-only" />
+              <Label
+                htmlFor="patient"
+                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+              >
+                <UserIcon className="mb-3 h-6 w-6" />
+                I'm a Patient
+              </Label>
+            </div>
+            <div>
+              <RadioGroupItem
+                value="doctor"
+                id="doctor"
+                className="peer sr-only"
+              />
+              <Label
+                htmlFor="doctor"
+                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+              >
+                <Stethoscope className="mb-3 h-6 w-6" />
+                I'm a Doctor
+              </Label>
+            </div>
+          </RadioGroup>
+        </CardContent>
+        <CardFooter>
+          <Button type="submit" className="w-full">
+            Continue
+          </Button>
+        </CardFooter>
+      </form>
+    </Card>
+  );
+
+  const renderPatientForm = () => (
+     <Card className="w-full max-w-lg">
         <CardHeader>
           <CardTitle className="text-2xl">Complete Your Profile</CardTitle>
           <CardDescription>
             Just a few more details to get you started.
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handlePatientSubmit}>
           <CardContent className="grid gap-6">
              <div className="grid gap-2">
                 <Label htmlFor="username">Username</Label>
@@ -108,40 +172,6 @@ export default function CompleteProfilePage() {
                     <Input id="last-name" placeholder="Robinson" required value={lastName} onChange={(e) => setLastName(e.target.value)} />
                 </div>
             </div>
-
-            <div className="grid gap-4">
-              <Label>I am a...</Label>
-              <RadioGroup
-                value={role}
-                onValueChange={(value) => setRole(value as 'patient' | 'doctor')}
-                className="grid grid-cols-2 gap-4"
-              >
-                <div>
-                  <RadioGroupItem value="patient" id="patient" className="peer sr-only" />
-                  <Label
-                    htmlFor="patient"
-                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                  >
-                    <User className="mb-3 h-6 w-6" />
-                    Patient
-                  </Label>
-                </div>
-                <div>
-                  <RadioGroupItem
-                    value="doctor"
-                    id="doctor"
-                    className="peer sr-only"
-                  />
-                  <Label
-                    htmlFor="doctor"
-                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                  >
-                    <Stethoscope className="mb-3 h-6 w-6" />
-                    Doctor
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
           </CardContent>
           <CardFooter>
             <Button type="submit" className="w-full">
@@ -150,6 +180,13 @@ export default function CompleteProfilePage() {
           </CardFooter>
         </form>
       </Card>
+  );
+
+
+  return (
+    <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
+      {step === 'role' && renderRoleSelection()}
+      {step === 'patient' && renderPatientForm()}
     </div>
   );
 }

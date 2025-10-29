@@ -12,7 +12,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
   const router = useRouter();
   const firestore = useFirestore();
-  const [authStatus, setAuthStatus] = useState<'loading' | 'unauthenticated' | 'incomplete' | 'unverified' | 'verified'>('loading');
+  const [authStatus, setAuthStatus] = useState<'loading' | 'unauthenticated' | 'incomplete' | 'pending' | 'verified'>('loading');
 
   const userDocRef = useMemoFirebase(
     () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
@@ -41,8 +41,8 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
         if (userDoc.exists() && userDoc.data()?.role) {
             const userData = userDoc.data();
             if (userData.role === 'doctor' && userData.verificationStatus !== 'verified') {
-                setAuthStatus('unverified');
-                // The dashboard page will handle showing the correct "pending" state.
+                setAuthStatus('pending');
+                // The dashboard page will handle showing the correct state.
                 // We just need to make sure they land there.
                 if (window.location.pathname !== '/dashboard') {
                     router.push('/dashboard');
@@ -51,6 +51,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
                 setAuthStatus('verified');
             }
         } else {
+          // If no user doc, they need to select a role or complete their profile.
           setAuthStatus('incomplete');
           router.push('/complete-profile');
         }
@@ -71,8 +72,9 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
   
-  if (authStatus === 'unverified' && window.location.pathname !== '/dashboard' && window.location.pathname !== '/settings' && window.location.pathname !== '/help' && window.location.pathname !== '/verify-credentials') {
-      return <div className="flex h-screen items-center justify-center">Redirecting to verification...</div>;
+  // This allows pending doctors to access dashboard (to see status), settings, and help.
+  if (authStatus === 'pending' && !['/dashboard', '/settings', '/help'].includes(window.location.pathname)) {
+      return <div className="flex h-screen items-center justify-center">Redirecting to dashboard...</div>;
   }
 
 

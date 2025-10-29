@@ -14,9 +14,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, ShieldCheck } from 'lucide-react';
-import Link from 'next/link';
-import { useUser, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { useUser, useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { doc, setDoc, writeBatch } from 'firebase/firestore';
 
 export default function VerifyCredentialsPage() {
   const router = useRouter();
@@ -52,40 +51,53 @@ export default function VerifyCredentialsPage() {
       return;
     }
 
-    // In a real application, you would upload the file to Firebase Storage
-    const doctorProfileRef = doc(firestore, `users/${user.uid}/doctorProfile/${user.uid}`);
-    const doctorProfileData = { 
-        id: user.uid,
-        fullName,
-        stateOfRegistration,
-        medicalCouncilId,
-        licenseDocument: fileName, // In a real app, this would be the storage URL
-        manualVerificationRequired: false,
-    };
-
     const userRef = doc(firestore, 'users', user.uid);
-    const userData = {
-        verificationStatus: 'pending'
+    const doctorProfileRef = doc(firestore, `users/${user.uid}/doctorProfile/${user.uid}`);
+    
+    const batch = writeBatch(firestore);
+
+    // Set initial user data with role and pending status
+    batch.set(userRef, {
+      id: user.uid,
+      email: user.email,
+      role: 'doctor',
+      verificationStatus: 'pending'
+    }, { merge: true });
+
+    // Set doctor profile data for verification
+    const doctorProfileData = { 
+      id: user.uid,
+      fullName,
+      stateOfRegistration,
+      medicalCouncilId,
+      licenseDocument: `uploads/${user.uid}/${fileName}`, // Placeholder for storage path
+      manualVerificationRequired: false,
     };
+    batch.set(doctorProfileRef, doctorProfileData);
 
     try {
-        await setDoc(doctorProfileRef, doctorProfileData, { merge: true });
-        await setDoc(userRef, userData, { merge: true });
-        
-        toast({
-          title: 'Credentials Submitted',
-          description: 'Your profile will be reviewed by our support team to verify your account.',
-        });
+      await batch.commit();
+      
+      toast({
+        title: 'Credentials Submitted',
+        description: 'Your submission is now under review by our support team.',
+      });
 
-        router.push('/dashboard');
+      router.push('/dashboard');
 
-    } catch (error) {
-        const permissionError = new FirestorePermissionError({
-            path: `users/${user.uid}/doctorProfile/${user.uid}`,
-            operation: 'write',
-            requestResourceData: doctorProfileData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
+    } catch (error: any) {
+      console.error("Error submitting credentials:", error);
+      const permissionError = new FirestorePermissionError({
+          path: `users/${user.uid}`, // Error could be on user or profile doc
+          operation: 'write',
+          requestResourceData: {user: '...', profile: doctorProfileData },
+      });
+      errorEmitter.emit('permission-error', permissionError);
+      toast({
+        title: "Submission Error",
+        description: "Could not submit your credentials. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -96,18 +108,18 @@ export default function VerifyCredentialsPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
                 <ShieldCheck className="h-6 w-6 text-primary" />
-                <CardTitle className="text-2xl">Submit Your Credentials</CardTitle>
+                <CardTitle className="text-2xl">Doctor Verification</CardTitle>
             </div>
             <CardDescription>
-              To complete your verification as a doctor, please provide the following information.
+              To begin your verification, please provide the following information.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6">
              <div className="grid gap-2">
-              <Label htmlFor="full-name">Full Name</Label>
+              <Label htmlFor="full-name">Full Name (as on your license)</Label>
               <Input
                 id="full-name"
-                placeholder="Enter your full name as on your license"
+                placeholder="Dr. Jane Doe"
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
@@ -115,10 +127,10 @@ export default function VerifyCredentialsPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="medical-council-id">Medical Council ID</Label>
+                  <Label htmlFor="medical-council-id">Registration Number</Label>
                   <Input
                     id="medical-council-id"
-                    placeholder="e.g., 12345"
+                    placeholder="MCID / State ID"
                     required
                     value={medicalCouncilId}
                     onChange={(e) => setMedicalCouncilId(e.target.value)}
@@ -137,7 +149,7 @@ export default function VerifyCredentialsPage() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="license-file">Medical License Document</Label>
+              <Label htmlFor="license-file">Certificate Proof</Label>
               <div className="flex items-center gap-2">
                 <Label
                   htmlFor="license-file-upload"
@@ -154,15 +166,12 @@ export default function VerifyCredentialsPage() {
                   accept=".pdf,.jpg,.jpeg,.png"
                 />
               </div>
-               <p className="text-xs text-muted-foreground">Please upload a clear copy of your medical license. (PDF, JPG, PNG)</p>
+               <p className="text-xs text-muted-foreground">Please upload a clear copy of your medical license.</p>
             </div>
           </CardContent>
-          <CardContent className="flex flex-col gap-4">
+          <CardContent>
             <Button type="submit" className="w-full">
               Submit for Verification
-            </Button>
-             <Button variant="link" asChild>
-                <Link href="/dashboard">Back to Dashboard</Link>
             </Button>
           </CardContent>
         </form>

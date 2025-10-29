@@ -8,7 +8,7 @@ import PatientDashboard from '@/components/patient-dashboard';
 import DoctorDashboard from '@/components/doctor-dashboard';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, FileCheck, CheckCircle } from 'lucide-react';
+import { Clock, FileCheck, CheckCircle, Video } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -19,7 +19,7 @@ export default function DashboardPage() {
   const auth = useAuth();
   const router = useRouter();
 
-  const [userData, setUserData] = useState<{ role: string, verificationStatus?: string, firstName: string } | null>(null);
+  const [userData, setUserData] = useState<any>(null);
   const [doctorProfile, setDoctorProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -35,21 +35,15 @@ export default function DashboardPage() {
         const userDocSnap = await getDoc(userDocRef);
         if (userDocSnap.exists()) {
           const data = userDocSnap.data();
-          let profileData = null;
+          setUserData(data);
 
           if (data.role === 'doctor') {
             const doctorProfileRef = doc(firestore, `users/${user!.uid}/doctorProfile/${user!.uid}`);
             const doctorProfileSnap = await getDoc(doctorProfileRef);
             if (doctorProfileSnap.exists()) {
-              profileData = doctorProfileSnap.data();
+              setDoctorProfile(doctorProfileSnap.data());
             }
           }
-          setDoctorProfile(profileData);
-          setUserData({
-            role: data.role,
-            verificationStatus: data.verificationStatus,
-            firstName: data.firstName,
-          });
         }
         setLoading(false);
       };
@@ -71,67 +65,79 @@ export default function DashboardPage() {
     return <div className="flex h-full items-center justify-center">Loading Dashboard...</div>;
   }
 
-  if (userData?.role === 'doctor' && userData?.verificationStatus === 'pending') {
-    const hasSubmittedCredentials = !!doctorProfile?.medicalCouncilId;
+  // Doctor Flow
+  if (userData?.role === 'doctor') {
+    // 1. Doctor has submitted credentials, admin has NOT approved yet.
+    if (userData.verificationStatus === 'pending' && !doctorProfile?.manualVerificationRequired) {
+      const hasSubmittedCredentials = !!doctorProfile?.medicalCouncilId;
+      if (!hasSubmittedCredentials) {
+        // This case should ideally not be hit if the flow is correct, but as a fallback:
+        router.push('/verify-credentials');
+        return <div className="flex h-full items-center justify-center">Redirecting to credential submission...</div>;
+      }
+      return (
+        <div className="flex h-full items-center justify-center">
+          <Card className="max-w-lg text-center">
+              <CardHeader>
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-4">
+                      <Clock className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle>Verification Pending</CardTitle>
+                  <CardDescription>Welcome, Dr. {doctorProfile.fullName}. Your submission is under review.</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center">
+                  <p className="text-sm text-muted-foreground">
+                    Thank you for submitting your credentials. Our team will review them. Once verified, you will be prompted to complete your profile and set up a final verification call.
+                  </p>
+                  <div className="mt-6 flex items-center justify-center rounded-md border border-dashed p-4 text-green-600">
+                      <CheckCircle className="mr-2 h-5 w-5" />
+                      <span className="font-medium">Credentials Submitted for Review</span>
+                  </div>
+                   <Button onClick={handleLogout} className="mt-4" variant="link">Log Out</Button>
+              </CardContent>
+          </Card>
+        </div>
+      );
+    }
+    
+    // 2. Admin has approved credentials, but doctor hasn't completed profile yet.
+    if (userData.verificationStatus === 'pending' && doctorProfile?.manualVerificationRequired && !userData.username) {
+        router.push('/complete-profile?role=doctor');
+        return <div className="flex h-full items-center justify-center">Redirecting to complete your profile...</div>;
+    }
 
-    return (
-      <div className="flex h-full items-center justify-center">
-        <Card className="max-w-lg text-center">
-            <CardHeader>
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-4">
-                    <Clock className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>Verification Pending</CardTitle>
-                <CardDescription>
-                    {hasSubmittedCredentials 
-                        ? `Welcome, Dr. ${userData.firstName}. Your submission is under review.`
-                        : `Welcome, Dr. ${userData.firstName}. Please submit your credentials to begin.`
-                    }
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center">
-                <p className="text-sm text-muted-foreground">
-                    {hasSubmittedCredentials
-                        ? "Thank you for submitting your credentials. Our team will review them, and you'll be notified of the next step: a one-on-one video call."
-                        : "To complete your registration as a medical professional, please provide your full name, state of registration, medical ID, and a copy of your license."
-                    }
-                </p>
-                {hasSubmittedCredentials ? (
-                    <div className="mt-6 flex items-center justify-center rounded-md border border-dashed p-4 text-green-600">
-                        <CheckCircle className="mr-2 h-5 w-5" />
-                        <span className="font-medium">Credentials Submitted for Review</span>
-                    </div>
-                ) : (
-                    <Button asChild className="mt-6">
-                        <Link href="/verify-credentials">
-                            <FileCheck className="mr-2 h-4 w-4"/>
-                            Submit Credentials
-                        </Link>
-                    </Button>
-                )}
-                 <Button onClick={handleLogout} className="mt-4" variant="link">Log Out</Button>
-            </CardContent>
-        </Card>
-      </div>
-    );
-  }
-  
-  if (userData?.role === 'doctor' && userData?.verificationStatus === 'rejected') {
-    return (
+    // 3. Admin has approved, doctor has completed profile, but video call is pending.
+    if (userData.verificationStatus === 'pending' && doctorProfile?.manualVerification_required && userData.username) {
+       return (
          <div className="flex h-full items-center justify-center">
-             <Card className="max-w-lg text-center">
-                <CardHeader>
-                    {/* ... UI for rejected status ... */}
-                </CardHeader>
-             </Card>
-         </div>
-    );
+          <Card className="max-w-lg text-center">
+              <CardHeader>
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 mb-4">
+                      <Video className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <CardTitle>Final Step: Video Verification</CardTitle>
+                  <CardDescription>Dr. {userData.firstName}, your credentials have been approved!</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center">
+                  <p className="text-sm text-muted-foreground">
+                    To activate your account and make your profile public, please schedule a brief one-on-one video call with our verification team.
+                  </p>
+                  <Button className="mt-6">
+                    Schedule Verification Call
+                  </Button>
+                   <Button onClick={handleLogout} className="mt-4" variant="link">Log Out</Button>
+              </CardContent>
+          </Card>
+        </div>
+       )
+    }
+
+    // 4. Doctor is fully verified.
+    if (userData.verificationStatus === 'verified') {
+      return <DoctorDashboard />;
+    }
   }
 
-
-  if (userData?.role === 'doctor' && userData?.verificationStatus === 'verified') {
-    return <DoctorDashboard />;
-  }
 
   // Fallback for patients or any other role
   return <PatientDashboard />;
