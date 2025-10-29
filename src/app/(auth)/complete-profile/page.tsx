@@ -35,7 +35,7 @@ export default function CompleteProfilePage() {
   const [username, setUsername] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [step, setStep] = useState<'role' | 'patient' | 'doctor'>('role');
+  const [step, setStep] = useState<'role' | 'patient'>('role');
 
   useEffect(() => {
     const roleFromQuery = searchParams.get('role');
@@ -53,7 +53,7 @@ export default function CompleteProfilePage() {
     }
     if (role === 'patient') {
       setStep('patient');
-    } else {
+    } else if (role === 'doctor') {
       router.push('/verify-credentials');
     }
   };
