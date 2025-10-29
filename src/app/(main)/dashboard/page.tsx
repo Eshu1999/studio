@@ -114,9 +114,10 @@ export default function DashboardPage() {
     );
   }
 
-  if (userData?.role === 'doctor') {
+  if (userData?.role === 'doctor' && userData?.verificationStatus === 'verified') {
     return <DoctorDashboard />;
   }
 
+  // Fallback for patients or any other role
   return <PatientDashboard />;
 }

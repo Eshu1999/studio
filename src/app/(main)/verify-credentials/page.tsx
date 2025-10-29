@@ -36,7 +36,7 @@ export default function VerifyCredentialsPage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName || !stateOfRegistration || !medicalCouncilId || !fileName) {
       toast({
@@ -55,6 +55,7 @@ export default function VerifyCredentialsPage() {
     // In a real application, you would upload the file to Firebase Storage
     const doctorProfileRef = doc(firestore, `users/${user.uid}/doctorProfile/${user.uid}`);
     const doctorProfileData = { 
+        id: user.uid,
         fullName,
         stateOfRegistration,
         medicalCouncilId,
@@ -68,8 +69,8 @@ export default function VerifyCredentialsPage() {
     };
 
     try {
-        setDoc(doctorProfileRef, doctorProfileData, { merge: true });
-        setDoc(userRef, userData, { merge: true });
+        await setDoc(doctorProfileRef, doctorProfileData, { merge: true });
+        await setDoc(userRef, userData, { merge: true });
         
         toast({
           title: 'Credentials Submitted',
