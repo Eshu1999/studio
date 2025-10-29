@@ -41,6 +41,9 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
                 // We just need to make sure they land there.
                 if (window.location.pathname !== '/dashboard') {
                     router.push('/dashboard');
+                } else {
+                    // Allow rendering of the dashboard for pending state
+                    setAuthStatus('verified');
                 }
             } else {
                 setAuthStatus('verified');
@@ -54,6 +57,9 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
         setAuthStatus('unauthenticated');
         router.push('/login');
       });
+    } else if (!user && !loading) {
+        setAuthStatus('unauthenticated');
+        router.push('/login');
     }
 
   }, [user, loading, router, userDocRef]);
@@ -69,6 +75,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   
   // This allows pending doctors to access dashboard, settings, and help.
   if (authStatus === 'pending' && !['/dashboard', '/settings', '/help'].includes(window.location.pathname)) {
+      router.push('/dashboard');
       return <div className="flex h-screen items-center justify-center">Redirecting to dashboard...</div>;
   }
 
