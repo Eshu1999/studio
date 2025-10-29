@@ -30,11 +30,6 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
       router.push('/login');
       return;
     }
-    
-    if (!user.emailVerified) {
-       router.push('/verify-email');
-       return;
-    }
 
     if (userDocRef) {
       getDoc(userDocRef).then((userDoc) => {
@@ -72,7 +67,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
   
-  // This allows pending doctors to access dashboard (to see status), settings, and help.
+  // This allows pending doctors to access dashboard, settings, and help.
   if (authStatus === 'pending' && !['/dashboard', '/settings', '/help'].includes(window.location.pathname)) {
       return <div className="flex h-screen items-center justify-center">Redirecting to dashboard...</div>;
   }
