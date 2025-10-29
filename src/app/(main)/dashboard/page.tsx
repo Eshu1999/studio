@@ -19,7 +19,7 @@ export default function DashboardPage() {
   const auth = useAuth();
   const router = useRouter();
 
-  const [userData, setUserData] = useState<{ role: string, verificationStatus?: string } | null>(null);
+  const [userData, setUserData] = useState<{ role: string, verificationStatus?: string, firstName: string } | null>(null);
   const [doctorProfile, setDoctorProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -31,6 +31,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (userDocRef) {
       const fetchData = async () => {
+        setLoading(true);
         const userDocSnap = await getDoc(userDocRef);
         if (userDocSnap.exists()) {
           const data = userDocSnap.data();
@@ -47,6 +48,7 @@ export default function DashboardPage() {
           setUserData({
             role: data.role,
             verificationStatus: data.verificationStatus,
+            firstName: data.firstName,
           });
         }
         setLoading(false);
@@ -82,22 +84,22 @@ export default function DashboardPage() {
                 <CardTitle>Verification Pending</CardTitle>
                 <CardDescription>
                     {hasSubmittedCredentials 
-                        ? "Your submission is under review by our team."
-                        : "Your account is currently under review. Please submit your credentials to expedite the process."
+                        ? `Welcome, Dr. ${userData.firstName}. Your submission is under review.`
+                        : `Welcome, Dr. ${userData.firstName}. Please submit your credentials to begin.`
                     }
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center">
                 <p className="text-sm text-muted-foreground">
                     {hasSubmittedCredentials
-                        ? "Thank you for submitting your credentials. We'll notify you via email after we've reviewed your submission. The next step will be a one-on-one video call."
+                        ? "Thank you for submitting your credentials. Our team will review them, and you'll be notified of the next step: a one-on-one video call."
                         : "To complete your registration as a medical professional, please provide your full name, state of registration, medical ID, and a copy of your license."
                     }
                 </p>
                 {hasSubmittedCredentials ? (
                     <div className="mt-6 flex items-center justify-center rounded-md border border-dashed p-4 text-green-600">
                         <CheckCircle className="mr-2 h-5 w-5" />
-                        <span className="font-medium">Credentials Submitted</span>
+                        <span className="font-medium">Credentials Submitted for Review</span>
                     </div>
                 ) : (
                     <Button asChild className="mt-6">
@@ -113,6 +115,19 @@ export default function DashboardPage() {
       </div>
     );
   }
+  
+  if (userData?.role === 'doctor' && userData?.verificationStatus === 'rejected') {
+    return (
+         <div className="flex h-full items-center justify-center">
+             <Card className="max-w-lg text-center">
+                <CardHeader>
+                    {/* ... UI for rejected status ... */}
+                </CardHeader>
+             </Card>
+         </div>
+    );
+  }
+
 
   if (userData?.role === 'doctor' && userData?.verificationStatus === 'verified') {
     return <DoctorDashboard />;

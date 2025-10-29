@@ -12,7 +12,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
   const router = useRouter();
   const firestore = useFirestore();
-  const [isProfileComplete, setIsProfileComplete] = useState<boolean | null>(null);
+  const [authStatus, setAuthStatus] = useState<'loading' | 'unauthenticated' | 'incomplete' | 'unverified' | 'verified'>('loading');
 
   const userDocRef = useMemoFirebase(
     () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
@@ -20,53 +20,61 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    if (loading) return; // Wait until user auth state is resolved
-
-    if (!user) {
-      router.push('/login');
+    if (loading) {
+      setAuthStatus('loading');
       return;
     }
 
-    // Now that we know we have a user, check their profile document.
+    if (!user) {
+      setAuthStatus('unauthenticated');
+      router.push('/login');
+      return;
+    }
+    
+    if (!user.emailVerified) {
+       router.push('/verify-email');
+       return;
+    }
+
     if (userDocRef) {
       getDoc(userDocRef).then((userDoc) => {
         if (userDoc.exists() && userDoc.data()?.role) {
-          setIsProfileComplete(true);
+            const userData = userDoc.data();
+            if (userData.role === 'doctor' && userData.verificationStatus !== 'verified') {
+                setAuthStatus('unverified');
+                // The dashboard page will handle showing the correct "pending" state.
+                // We just need to make sure they land there.
+                if (window.location.pathname !== '/dashboard') {
+                    router.push('/dashboard');
+                }
+            } else {
+                setAuthStatus('verified');
+            }
         } else {
-          setIsProfileComplete(false);
+          setAuthStatus('incomplete');
           router.push('/complete-profile');
         }
       }).catch(() => {
-        // Handle potential errors fetching the doc
-        setIsProfileComplete(false);
+        setAuthStatus('unauthenticated');
         router.push('/login');
       });
-    } else {
-        // This case handles when firestore isn't ready yet, though it should be.
-        // Or if user exists but firestore doesn't for some reason.
-        if (!loading && user) {
-            // A user is logged in, but we can't check their profile.
-            // Let's assume for a moment the profile is incomplete and redirect.
-            // This is a failsafe.
-            setIsProfileComplete(false);
-            router.push('/complete-profile');
-        }
     }
-  }, [user, loading, router, firestore, userDocRef]);
+
+  }, [user, loading, router, userDocRef]);
 
 
-  if (loading || isProfileComplete === null) {
+  if (authStatus === 'loading' || authStatus === 'unauthenticated' || authStatus === 'incomplete') {
     return (
       <div className="flex h-screen items-center justify-center">
         Loading...
       </div>
     );
   }
-
-  if (!isProfileComplete) {
-    // Redirect is happening, so we can render null or a loader
-     return <div className="flex h-screen items-center justify-center">Redirecting...</div>;
+  
+  if (authStatus === 'unverified' && window.location.pathname !== '/dashboard' && window.location.pathname !== '/settings' && window.location.pathname !== '/help' && window.location.pathname !== '/verify-credentials') {
+      return <div className="flex h-screen items-center justify-center">Redirecting to verification...</div>;
   }
+
 
   return (
     <SidebarProvider>
