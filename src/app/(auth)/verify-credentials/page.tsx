@@ -43,7 +43,7 @@ export default function VerifyCredentialsPage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName || !stateOfRegistration || !medicalCouncilId || !licenseFile) {
       toast({
@@ -61,62 +61,57 @@ export default function VerifyCredentialsPage() {
 
     setIsSubmitting(true);
     
-    // Provide immediate feedback to the user
-    toast({
-      title: 'Credentials Submitted',
-      description: 'Your submission is now under review by our support team.',
-    });
-    router.push('/dashboard');
+    try {
+        // 1. Upload file to Firebase Storage
+        const filePath = `doctor-licenses/${user.uid}/${licenseFile.name}`;
+        const storageRef = ref(storage, filePath);
+        const uploadResult = await uploadBytes(storageRef, licenseFile!);
+        const downloadURL = await getDownloadURL(uploadResult.ref);
 
-    // Perform upload and database write in the background
-    const processSubmission = async () => {
-        try {
-            // 1. Upload file to Firebase Storage
-            const filePath = `doctor-licenses/${user.uid}/${licenseFile.name}`;
-            const storageRef = ref(storage, filePath);
-            const uploadResult = await uploadBytes(storageRef, licenseFile!);
-            const downloadURL = await getDownloadURL(uploadResult.ref);
+        // 2. Prepare Firestore batch write
+        const userRef = doc(firestore, 'users', user.uid);
+        const doctorProfileRef = doc(firestore, `users/${user.uid}/doctorProfile/${user.uid}`);
+        const batch = writeBatch(firestore);
 
-            // 2. Prepare Firestore batch write
-            const userRef = doc(firestore, 'users', user.uid);
-            const doctorProfileRef = doc(firestore, `users/${user.uid}/doctorProfile/${user.uid}`);
-            const batch = writeBatch(firestore);
+        // Set initial user data with role and pending status
+        batch.set(userRef, {
+            id: user.uid,
+            email: user.email,
+            role: 'doctor',
+            verificationStatus: 'pending'
+        }, { merge: true });
 
-            // Set initial user data with role and pending status
-            batch.set(userRef, {
-                id: user.uid,
-                email: user.email,
-                role: 'doctor',
-                verificationStatus: 'pending'
-            }, { merge: true });
+        // Set doctor profile data for verification
+        const doctorProfileData = { 
+            id: user.uid,
+            fullName,
+            stateOfRegistration,
+            medicalCouncilId,
+            licenseDocument: downloadURL,
+            manualVerificationRequired: false,
+        };
+        batch.set(doctorProfileRef, doctorProfileData);
+        
+        // 3. Commit the batch
+        await batch.commit();
+        
+        toast({
+          title: 'Credentials Submitted',
+          description: 'Your submission is now under review by our support team.',
+        });
+        
+        router.push('/dashboard');
 
-            // Set doctor profile data for verification
-            const doctorProfileData = { 
-                id: user.uid,
-                fullName,
-                stateOfRegistration,
-                medicalCouncilId,
-                licenseDocument: downloadURL,
-                manualVerificationRequired: false,
-            };
-            batch.set(doctorProfileRef, doctorProfileData);
-            
-            // 3. Commit the batch
-            await batch.commit();
-
-        } catch (error: any) {
-            console.error("Background submission error:", error);
-            // Optionally, you could use a background notification system or
-            // log this to a more robust error tracking service.
-        } finally {
-            // This will run in the background, the user is already on the dashboard
-            if (typeof window !== 'undefined') {
-                setIsSubmitting(false);
-            }
-        }
-    };
-    
-    processSubmission();
+    } catch (error: any) {
+        console.error("Submission error:", error);
+        toast({
+          title: 'Submission Failed',
+          description: error.message || "An unexpected error occurred. Please try again.",
+          variant: 'destructive',
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   return (
