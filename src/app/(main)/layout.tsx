@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AppHeader } from '@/components/app-header';
@@ -37,19 +38,16 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
             const userData = userDoc.data();
             if (userData.role === 'doctor' && userData.verificationStatus !== 'verified') {
                 setAuthStatus('pending');
-                // The dashboard page will handle showing the correct state.
-                // We just need to make sure they land there.
-                if (window.location.pathname !== '/dashboard') {
+                // If a pending doctor tries to access a restricted page, redirect them.
+                if (!['/dashboard', '/settings', '/help'].includes(window.location.pathname)) {
                     router.push('/dashboard');
                 } else {
-                    // Allow rendering of the dashboard for pending state
-                    setAuthStatus('verified');
+                    setAuthStatus('verified'); // Allow rendering for permitted pages
                 }
             } else {
                 setAuthStatus('verified');
             }
         } else {
-          // If no user doc, they need to select a role or complete their profile.
           setAuthStatus('incomplete');
           router.push('/complete-profile');
         }
@@ -65,20 +63,13 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   }, [user, loading, router, userDocRef]);
 
 
-  if (authStatus === 'loading' || authStatus === 'unauthenticated' || authStatus === 'incomplete') {
+  if (authStatus !== 'verified') {
     return (
       <div className="flex h-screen items-center justify-center">
         Loading...
       </div>
     );
   }
-  
-  // This allows pending doctors to access dashboard, settings, and help.
-  if (authStatus === 'pending' && !['/dashboard', '/settings', '/help'].includes(window.location.pathname)) {
-      router.push('/dashboard');
-      return <div className="flex h-screen items-center justify-center">Redirecting to dashboard...</div>;
-  }
-
 
   return (
     <SidebarProvider>
