@@ -99,9 +99,6 @@ export default function VerifyCredentialsPage() {
         } catch (error: any) {
             console.error("Background submission error:", error);
             // Optionally, you could use a global state to inform the user of a background failure
-        } finally {
-            // This will only run in the background, UI has already moved on
-            // setIsSubmitting(false); // No longer needed to change state here
         }
     };
 
