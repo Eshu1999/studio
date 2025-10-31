@@ -13,31 +13,39 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, ShieldCheck } from 'lucide-react';
-import { useUser, useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { doc, setDoc, writeBatch } from 'firebase/firestore';
+import { Upload, ShieldCheck, Loader2 } from 'lucide-react';
+import { useUser, useFirestore, useStorage, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { doc, writeBatch } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default function VerifyCredentialsPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
+  const storage = useStorage();
+  
   const [fullName, setFullName] = useState('');
   const [stateOfRegistration, setStateOfRegistration] = useState('');
   const [medicalCouncilId, setMedicalCouncilId] = useState('');
+  const [licenseFile, setLicenseFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files.length > 0) {
-      setFileName(event.target.files[0].name);
+    const file = event.target.files?.[0];
+    if (file) {
+      setLicenseFile(file);
+      setFileName(file.name);
     } else {
+      setLicenseFile(null);
       setFileName('');
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName || !stateOfRegistration || !medicalCouncilId || !fileName) {
+    if (!fullName || !stateOfRegistration || !medicalCouncilId || !licenseFile) {
       toast({
         title: 'Missing Information',
         description: 'Please fill out all fields and upload your medical license.',
@@ -46,36 +54,45 @@ export default function VerifyCredentialsPage() {
       return;
     }
     
-    if (!user || !firestore) {
+    if (!user || !firestore || !storage) {
       toast({ title: "Error", description: "You must be logged in to submit credentials.", variant: "destructive"});
       return;
     }
 
-    const userRef = doc(firestore, 'users', user.uid);
-    const doctorProfileRef = doc(firestore, `users/${user.uid}/doctorProfile/${user.uid}`);
-    
-    const batch = writeBatch(firestore);
-
-    // Set initial user data with role and pending status
-    batch.set(userRef, {
-      id: user.uid,
-      email: user.email,
-      role: 'doctor',
-      verificationStatus: 'pending'
-    }, { merge: true });
-
-    // Set doctor profile data for verification
-    const doctorProfileData = { 
-      id: user.uid,
-      fullName,
-      stateOfRegistration,
-      medicalCouncilId,
-      licenseDocument: `uploads/${user.uid}/${fileName}`, // Placeholder for storage path
-      manualVerificationRequired: false,
-    };
-    batch.set(doctorProfileRef, doctorProfileData);
+    setIsSubmitting(true);
 
     try {
+      // 1. Upload file to Firebase Storage
+      const filePath = `doctor-licenses/${user.uid}/${licenseFile.name}`;
+      const storageRef = ref(storage, filePath);
+      const uploadResult = await uploadBytes(storageRef, licenseFile);
+      const downloadURL = await getDownloadURL(uploadResult.ref);
+
+      // 2. Prepare Firestore batch write
+      const userRef = doc(firestore, 'users', user.uid);
+      const doctorProfileRef = doc(firestore, `users/${user.uid}/doctorProfile/${user.uid}`);
+      const batch = writeBatch(firestore);
+
+      // Set initial user data with role and pending status
+      batch.set(userRef, {
+        id: user.uid,
+        email: user.email,
+        role: 'doctor',
+        verificationStatus: 'pending'
+      }, { merge: true });
+
+      // Set doctor profile data for verification, now with the download URL
+      const doctorProfileData = { 
+        id: user.uid,
+        fullName,
+        stateOfRegistration,
+        medicalCouncilId,
+        licenseDocument: downloadURL, // Save the actual download URL
+        manualVerificationRequired: false,
+      };
+      batch.set(doctorProfileRef, doctorProfileData);
+      
+      // 3. Commit the batch
       await batch.commit();
       
       toast({
@@ -88,9 +105,9 @@ export default function VerifyCredentialsPage() {
     } catch (error: any) {
       console.error("Error submitting credentials:", error);
       const permissionError = new FirestorePermissionError({
-          path: `users/${user.uid}`, // Error could be on user or profile doc
+          path: `users/${user.uid}`,
           operation: 'write',
-          requestResourceData: {user: '...', profile: doctorProfileData },
+          requestResourceData: { user: '...', profile: { fullName } },
       });
       errorEmitter.emit('permission-error', permissionError);
       toast({
@@ -98,6 +115,8 @@ export default function VerifyCredentialsPage() {
         description: "Could not submit your credentials. Please try again.",
         variant: "destructive",
       });
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
@@ -123,6 +142,7 @@ export default function VerifyCredentialsPage() {
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
+                disabled={isSubmitting}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -134,6 +154,7 @@ export default function VerifyCredentialsPage() {
                     required
                     value={medicalCouncilId}
                     onChange={(e) => setMedicalCouncilId(e.target.value)}
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -144,6 +165,7 @@ export default function VerifyCredentialsPage() {
                     required
                     value={stateOfRegistration}
                     onChange={(e) => setStateOfRegistration(e.target.value)}
+                    disabled={isSubmitting}
                   />
                 </div>
             </div>
@@ -164,14 +186,16 @@ export default function VerifyCredentialsPage() {
                   className="sr-only"
                   onChange={handleFileChange}
                   accept=".pdf,.jpg,.jpeg,.png"
+                  disabled={isSubmitting}
                 />
               </div>
                <p className="text-xs text-muted-foreground">Please upload a clear copy of your medical license.</p>
             </div>
           </CardContent>
           <CardContent>
-            <Button type="submit" className="w-full">
-              Submit for Verification
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isSubmitting ? 'Submitting...' : 'Submit for Verification'}
             </Button>
           </CardContent>
         </form>
