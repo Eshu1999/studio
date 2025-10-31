@@ -54,6 +54,17 @@ export default function DashboardPage() {
     }
   }, [userDocRef, userLoading, firestore, user]);
 
+  useEffect(() => {
+    if (!loading && !userLoading && userData?.role === 'doctor') {
+      const hasSubmittedCredentials = !!doctorProfile?.medicalCouncilId;
+      if (userData.verificationStatus === 'pending' && !doctorProfile?.manualVerificationRequired && !hasSubmittedCredentials) {
+        router.push('/verify-credentials');
+      } else if (userData.verificationStatus === 'pending' && doctorProfile?.manualVerificationRequired && !userData.username) {
+        router.push('/complete-profile?role=doctor');
+      }
+    }
+  }, [loading, userLoading, userData, doctorProfile, router]);
+
   const handleLogout = async () => {
     if (auth) {
       await signOut(auth);
@@ -67,14 +78,16 @@ export default function DashboardPage() {
 
   // Doctor Flow
   if (userData?.role === 'doctor') {
-    // 1. Doctor has submitted credentials, admin has NOT approved yet.
-    if (userData.verificationStatus === 'pending' && !doctorProfile?.manualVerificationRequired) {
-      const hasSubmittedCredentials = !!doctorProfile?.medicalCouncilId;
-      if (!hasSubmittedCredentials) {
-        // This case should ideally not be hit if the flow is correct, but as a fallback:
-        router.push('/verify-credentials');
-        return <div className="flex h-full items-center justify-center">Redirecting to credential submission...</div>;
-      }
+    const hasSubmittedCredentials = !!doctorProfile?.medicalCouncilId;
+    
+    // 1. Doctor has NOT submitted credentials yet.
+    // This case is now handled by the useEffect above to avoid render-time navigation.
+    if (userData.verificationStatus === 'pending' && !doctorProfile?.manualVerificationRequired && !hasSubmittedCredentials) {
+      return <div className="flex h-full items-center justify-center">Redirecting to credential submission...</div>;
+    }
+    
+    // 2. Doctor HAS submitted, pending ADMIN approval.
+    if (userData.verificationStatus === 'pending' && !doctorProfile?.manualVerificationRequired && hasSubmittedCredentials) {
       return (
         <div className="flex h-full items-center justify-center">
           <Card className="max-w-lg text-center">
@@ -100,13 +113,13 @@ export default function DashboardPage() {
       );
     }
     
-    // 2. Admin has approved credentials, but doctor hasn't completed profile yet.
+    // 3. Admin has approved credentials, but doctor hasn't completed profile yet.
+    // This case is also handled by the useEffect.
     if (userData.verificationStatus === 'pending' && doctorProfile?.manualVerificationRequired && !userData.username) {
-        router.push('/complete-profile?role=doctor');
         return <div className="flex h-full items-center justify-center">Redirecting to complete your profile...</div>;
     }
 
-    // 3. Admin has approved, doctor has completed profile, but video call is pending.
+    // 4. Admin has approved, doctor has completed profile, but video call is pending.
     if (userData.verificationStatus === 'pending' && doctorProfile?.manualVerification_required && userData.username) {
        return (
          <div className="flex h-full items-center justify-center">
@@ -132,7 +145,7 @@ export default function DashboardPage() {
        )
     }
 
-    // 4. Doctor is fully verified.
+    // 5. Doctor is fully verified.
     if (userData.verificationStatus === 'verified') {
       return <DoctorDashboard />;
     }
