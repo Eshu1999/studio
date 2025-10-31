@@ -4,19 +4,78 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound, useParams } from 'next/navigation';
-import { doctors } from '@/lib/data';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Stethoscope, Star, CalendarDays } from 'lucide-react';
+import { useFirestore, useMemoFirebase } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import type { Doctor } from '@/lib/types';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+
 
 export default function DoctorProfilePage() {
   const params = useParams<{ id: string }>();
-  const doctor = doctors.find((d) => d.id === params.id);
+  const firestore = useFirestore();
+  const [doctor, setDoctor] = useState<Doctor | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const doctorProfileRef = useMemoFirebase(
+    () => (firestore && params.id ? doc(firestore, `users/${params.id}/doctorProfile`, params.id) : null),
+    [firestore, params.id]
+  );
+  
+  const userRef = useMemoFirebase(
+      () => (firestore && params.id ? doc(firestore, 'users', params.id) : null),
+      [firestore, params.id]
+  );
+
+  useEffect(() => {
+    const fetchDoctor = async () => {
+      if (!doctorProfileRef || !userRef) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const [profileSnap, userSnap] = await Promise.all([
+            getDoc(doctorProfileRef),
+            getDoc(userRef)
+        ]);
+        
+        if (userSnap.exists() && userSnap.data().role === 'doctor' && userSnap.data().verificationStatus === 'verified' && profileSnap.exists()) {
+           const profileData = profileSnap.data();
+           const userData = userSnap.data();
+           setDoctor({
+                id: userSnap.id,
+                name: `${userData.firstName} ${userData.lastName}`,
+                specialization: profileData.specialization || 'N/A',
+                experience: profileData.experienceYears || 0,
+                bio: 'A dedicated medical professional.', // placeholder
+                availability: profileData.availability || {},
+                imageId: 'doctor-1', // placeholder
+                verificationStatus: 'verified',
+           });
+        } else {
+             setDoctor(null);
+        }
+      } catch (error) {
+        console.error("Error fetching doctor profile:", error);
+        setDoctor(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDoctor();
+  }, [doctorProfileRef, userRef]);
+
+
+  if (loading) {
+    return <div className="flex h-full items-center justify-center">Loading profile...</div>;
+  }
 
   // If the doctor is not found OR their account is not verified, show a 404 page.
-  if (!doctor || doctor.verificationStatus !== 'verified') {
+  if (!doctor) {
     notFound();
   }
 

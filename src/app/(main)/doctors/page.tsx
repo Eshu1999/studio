@@ -1,21 +1,81 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DoctorCard } from '@/components/doctor-card';
-import { doctors, appointments } from '@/lib/data';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
+import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import type { Doctor } from '@/lib/types';
 
 export default function DoctorsPage() {
+    const { user } = useUser();
+    const firestore = useFirestore();
     const [searchTerm, setSearchTerm] = useState('');
-    const connectedDoctorIds = [...new Set(appointments.map(a => a.doctorId))];
-    
-    // Filter for verified doctors first, then apply search
-    const verifiedDoctors = doctors.filter(doc => doc.verificationStatus === 'verified');
+    const [doctors, setDoctors] = useState<Doctor[]>([]);
+    const [connectedDoctorIds, setConnectedDoctorIds] = useState<string[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const searchedDoctors = verifiedDoctors.filter(doctor => 
+    const appointmentsRef = useMemoFirebase(
+        () => (firestore && user ? collection(firestore, 'appointments') : null),
+        [firestore, user]
+    );
+
+    const { data: userAppointments } = useCollection(
+        appointmentsRef && user ? query(appointmentsRef, where('patientId', '==', user.uid)) : null
+    );
+
+    useEffect(() => {
+        if (userAppointments) {
+            const ids = [...new Set(userAppointments.map(a => a.doctorId))];
+            setConnectedDoctorIds(ids);
+        }
+    }, [userAppointments]);
+
+    useEffect(() => {
+        const fetchVerifiedDoctors = async () => {
+            if (!firestore) return;
+            setLoading(true);
+            try {
+                const usersRef = collection(firestore, 'users');
+                const q = query(usersRef, where('role', '==', 'doctor'), where('verificationStatus', '==', 'verified'));
+                const querySnapshot = await getDocs(q);
+                
+                const fetchedDoctors: Doctor[] = [];
+
+                for (const userDoc of querySnapshot.docs) {
+                    const userData = userDoc.data();
+                    const profileRef = doc(firestore, `users/${userDoc.id}/doctorProfile`, userDoc.id);
+                    const profileSnap = await getDoc(profileRef);
+
+                    if (profileSnap.exists()) {
+                        const profileData = profileSnap.data();
+                        fetchedDoctors.push({
+                            id: userDoc.id,
+                            name: `${userData.firstName} ${userData.lastName}`,
+                            specialization: profileData.specialization || 'N/A',
+                            experience: profileData.experienceYears || 0,
+                            bio: 'A dedicated medical professional.',
+                            availability: profileData.availability || {},
+                            imageId: 'doctor-1', // Placeholder
+                            verificationStatus: 'verified',
+                        });
+                    }
+                }
+                setDoctors(fetchedDoctors);
+            } catch (error) {
+                console.error("Error fetching verified doctors:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchVerifiedDoctors();
+    }, [firestore]);
+    
+    const searchedDoctors = doctors.filter(doctor => 
         doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         doctor.specialization.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -46,32 +106,38 @@ export default function DoctorsPage() {
                 </div>
             </div>
 
-            {connectedDoctors.length > 0 && (
-                <section>
-                    <h2 className="text-2xl font-bold tracking-tight mb-4">Your Connected Doctors</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        {connectedDoctors.map((doctor) => (
-                            <DoctorCard key={doctor.id} doctor={doctor} />
-                        ))}
-                    </div>
-                </section>
-            )}
+            {loading ? (
+                 <div className="text-center text-muted-foreground py-12">Loading doctors...</div>
+            ) : (
+                <>
+                    {connectedDoctors.length > 0 && (
+                        <section>
+                            <h2 className="text-2xl font-bold tracking-tight mb-4">Your Connected Doctors</h2>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                {connectedDoctors.map((doctor) => (
+                                    <DoctorCard key={doctor.id} doctor={doctor} />
+                                ))}
+                            </div>
+                        </section>
+                    )}
 
-            {otherDoctors.length > 0 && (
-                 <section>
-                    <h2 className="text-2xl font-bold tracking-tight mb-4">{connectedDoctors.length > 0 ? 'Other Doctors' : 'All Doctors'}</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        {otherDoctors.map((doctor) => (
-                            <DoctorCard key={doctor.id} doctor={doctor} />
-                        ))}
-                    </div>
-                </section>
-            )}
+                    {otherDoctors.length > 0 && (
+                         <section>
+                            <h2 className="text-2xl font-bold tracking-tight mb-4">{connectedDoctors.length > 0 ? 'Other Doctors' : 'All Doctors'}</h2>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                {otherDoctors.map((doctor) => (
+                                    <DoctorCard key={doctor.id} doctor={doctor} />
+                                ))}
+                            </div>
+                        </section>
+                    )}
 
-            {searchedDoctors.length === 0 && (
-                <div className="text-center text-muted-foreground py-12">
-                    <p>No doctors found matching your search.</p>
-                </div>
+                    {searchedDoctors.length === 0 && !loading && (
+                        <div className="text-center text-muted-foreground py-12">
+                            <p>No doctors found matching your search.</p>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );
