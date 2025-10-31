@@ -4,6 +4,7 @@ import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import PatientDashboard from '@/components/patient-dashboard';
 import DoctorDashboard from '@/components/doctor-dashboard';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -144,8 +145,8 @@ export default function DashboardPage() {
                           <li>Medical License</li>
                       </ul>
                   </div>
-                  <Button className="mt-6">
-                    Schedule Verification Call
+                  <Button asChild className="mt-6">
+                    <Link href="/schedule-verification-call">Schedule Verification Call</Link>
                   </Button>
                    <Button onClick={handleLogout} className="mt-4" variant="link">Log Out</Button>
               </CardContent>
