@@ -3,7 +3,7 @@
 import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import PatientDashboard from '@/components/patient-dashboard';
 import DoctorDashboard from '@/components/doctor-dashboard';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Clock, CheckCircle, Video } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
   const { user, loading: userLoading } = useUser();
@@ -59,9 +58,8 @@ export default function DashboardPage() {
 
     if (userData.role === 'doctor') {
       const hasSubmittedCredentials = !!doctorProfile?.medicalCouncilId;
-      if (userData.verificationStatus === 'pending' && !doctorProfile?.manualVerificationRequired && !hasSubmittedCredentials) {
-        router.push('/verify-credentials');
-      } else if (userData.verificationStatus === 'pending' && doctorProfile?.manualVerificationRequired && !userData.username) {
+       // Scenario: Admin has approved credentials, but doctor hasn't set their username yet.
+      if (userData.verificationStatus === 'pending' && doctorProfile?.manualVerificationRequired && !userData.username) {
         router.push('/complete-profile?role=doctor');
       }
     }
@@ -82,9 +80,11 @@ export default function DashboardPage() {
   if (userData?.role === 'doctor') {
     const hasSubmittedCredentials = !!doctorProfile?.medicalCouncilId;
     
-    // 1. Doctor has NOT submitted credentials yet.
-    if (userData.verificationStatus === 'pending' && !doctorProfile?.manualVerificationRequired && !hasSubmittedCredentials) {
-      return <div className="flex h-full items-center justify-center">Redirecting to credential submission...</div>;
+    // 1. Doctor has NOT submitted credentials yet. This case is handled by main layout redirecting to complete-profile or verify-credentials.
+    // For safety, we can have a check here.
+    if (!hasSubmittedCredentials && userData.verificationStatus !== 'verified') {
+        router.push('/verify-credentials');
+        return <div className="flex h-full items-center justify-center">Redirecting to credential submission...</div>;
     }
     
     // 2. Doctor HAS submitted, pending ADMIN approval.
@@ -114,7 +114,8 @@ export default function DashboardPage() {
       );
     }
     
-    // 3. Admin has approved credentials, but doctor hasn't completed profile yet.
+    // 3. Admin has approved credentials, but doctor hasn't completed profile yet (e.g. set username).
+    // This is now handled by the useEffect above which redirects to /complete-profile.
     if (userData.verificationStatus === 'pending' && doctorProfile?.manualVerificationRequired && !userData.username) {
         return <div className="flex h-full items-center justify-center">Redirecting to complete your profile...</div>;
     }

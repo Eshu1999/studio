@@ -13,7 +13,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, loading } = useUser();
   const router = useRouter();
   const firestore = useFirestore();
-  const [authStatus, setAuthStatus] = useState<'loading' | 'unauthenticated' | 'incomplete' | 'pending' | 'verified'>('loading');
+  const [authStatus, setAuthStatus] = useState<'loading' | 'unauthenticated' | 'incomplete' | 'verified'>('loading');
 
   const userDocRef = useMemoFirebase(
     () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
@@ -21,6 +21,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
+    // This effect handles the initial auth check and redirection logic.
     if (loading) {
       setAuthStatus('loading');
       return;
@@ -34,30 +35,24 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
 
     if (userDocRef) {
       getDoc(userDocRef).then((userDoc) => {
-        if (userDoc.exists() && userDoc.data()?.role) {
-            const userData = userDoc.data();
-            if (userData.role === 'doctor' && userData.verificationStatus !== 'verified') {
-                setAuthStatus('pending');
-                // If a pending doctor tries to access a restricted page, redirect them.
-                if (!['/dashboard', '/settings', '/help'].includes(window.location.pathname)) {
-                    router.push('/dashboard');
-                } else {
-                    setAuthStatus('verified'); // Allow rendering for permitted pages
-                }
-            } else {
-                setAuthStatus('verified');
-            }
-        } else {
+        if (!userDoc.exists() || !userDoc.data()?.role) {
+          // If profile is truly incomplete, redirect.
           setAuthStatus('incomplete');
           router.push('/complete-profile');
+        } else {
+          // If a document with a role exists, they are at least partially set up.
+          // The dashboard will handle the more granular verification states.
+          setAuthStatus('verified');
         }
       }).catch(() => {
+        // Handle potential Firestore errors during fetch.
         setAuthStatus('unauthenticated');
         router.push('/login');
       });
     } else if (!user && !loading) {
-        setAuthStatus('unauthenticated');
-        router.push('/login');
+      // Redundant check for safety, but helps clarify flow.
+      setAuthStatus('unauthenticated');
+      router.push('/login');
     }
 
   }, [user, loading, router, userDocRef]);

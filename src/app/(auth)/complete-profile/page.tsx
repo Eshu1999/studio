@@ -35,13 +35,16 @@ export default function CompleteProfilePage() {
   const [username, setUsername] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [step, setStep] = useState<'role' | 'patient'>('role');
+  const [step, setStep] = useState<'role' | 'details'>('role');
 
   useEffect(() => {
     const roleFromQuery = searchParams.get('role');
     if (roleFromQuery === 'patient') {
       setRole('patient');
-      setStep('patient');
+      setStep('details');
+    } else if (roleFromQuery === 'doctor') {
+      setRole('doctor');
+      setStep('details');
     }
   }, [searchParams]);
 
@@ -52,13 +55,13 @@ export default function CompleteProfilePage() {
       return;
     }
     if (role === 'patient') {
-      setStep('patient');
+      setStep('details');
     } else if (role === 'doctor') {
       router.push('/verify-credentials');
     }
   };
 
-  const handlePatientSubmit = async (e: React.FormEvent) => {
+  const handleDetailsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !firestore) {
       toast({ title: 'Error', description: 'You must be logged in.', variant: 'destructive' });
@@ -71,13 +74,14 @@ export default function CompleteProfilePage() {
 
     const userRef = doc(firestore, 'users', user.uid);
     
+    // For patients, we set the role. For doctors, the role is already set.
     const userData: any = {
       id: user.uid,
       email: user.email,
       username,
       firstName,
       lastName,
-      role: 'patient',
+      ...(role === 'patient' && { role: 'patient' }),
     };
 
     setDoc(userRef, userData, { merge: true })
@@ -148,15 +152,18 @@ export default function CompleteProfilePage() {
     </Card>
   );
 
-  const renderPatientForm = () => (
+  const renderDetailsForm = () => (
      <Card className="w-full max-w-lg">
         <CardHeader>
           <CardTitle className="text-2xl">Complete Your Profile</CardTitle>
           <CardDescription>
-            Just a few more details to get you started.
+            {role === 'doctor'
+              ? "Your credentials are verified! Just a few more details to activate your account."
+              : "Just a few more details to get you started."
+            }
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handlePatientSubmit}>
+        <form onSubmit={handleDetailsSubmit}>
           <CardContent className="grid gap-6">
              <div className="grid gap-2">
                 <Label htmlFor="username">Username</Label>
@@ -175,7 +182,7 @@ export default function CompleteProfilePage() {
           </CardContent>
           <CardFooter>
             <Button type="submit" className="w-full">
-              Save and Continue
+              Save and Continue to Dashboard
             </Button>
           </CardFooter>
         </form>
@@ -186,7 +193,7 @@ export default function CompleteProfilePage() {
   return (
     <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
       {step === 'role' && renderRoleSelection()}
-      {step === 'patient' && renderPatientForm()}
+      {step === 'details' && renderDetailsForm()}
     </div>
   );
 }
