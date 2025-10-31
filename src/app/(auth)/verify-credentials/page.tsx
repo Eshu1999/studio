@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, ShieldCheck, Loader2 } from 'lucide-react';
-import { useUser, useFirestore, useStorage, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useUser, useFirestore, useStorage } from '@/firebase';
 import { doc, writeBatch } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -43,7 +43,7 @@ export default function VerifyCredentialsPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName || !stateOfRegistration || !medicalCouncilId || !licenseFile) {
       toast({
@@ -60,64 +60,63 @@ export default function VerifyCredentialsPage() {
     }
 
     setIsSubmitting(true);
+    
+    // Provide immediate feedback to the user
+    toast({
+      title: 'Credentials Submitted',
+      description: 'Your submission is now under review by our support team.',
+    });
+    router.push('/dashboard');
 
-    try {
-      // 1. Upload file to Firebase Storage
-      const filePath = `doctor-licenses/${user.uid}/${licenseFile.name}`;
-      const storageRef = ref(storage, filePath);
-      const uploadResult = await uploadBytes(storageRef, licenseFile);
-      const downloadURL = await getDownloadURL(uploadResult.ref);
+    // Perform upload and database write in the background
+    const processSubmission = async () => {
+        try {
+            // 1. Upload file to Firebase Storage
+            const filePath = `doctor-licenses/${user.uid}/${licenseFile.name}`;
+            const storageRef = ref(storage, filePath);
+            const uploadResult = await uploadBytes(storageRef, licenseFile!);
+            const downloadURL = await getDownloadURL(uploadResult.ref);
 
-      // 2. Prepare Firestore batch write
-      const userRef = doc(firestore, 'users', user.uid);
-      const doctorProfileRef = doc(firestore, `users/${user.uid}/doctorProfile/${user.uid}`);
-      const batch = writeBatch(firestore);
+            // 2. Prepare Firestore batch write
+            const userRef = doc(firestore, 'users', user.uid);
+            const doctorProfileRef = doc(firestore, `users/${user.uid}/doctorProfile/${user.uid}`);
+            const batch = writeBatch(firestore);
 
-      // Set initial user data with role and pending status
-      batch.set(userRef, {
-        id: user.uid,
-        email: user.email,
-        role: 'doctor',
-        verificationStatus: 'pending'
-      }, { merge: true });
+            // Set initial user data with role and pending status
+            batch.set(userRef, {
+                id: user.uid,
+                email: user.email,
+                role: 'doctor',
+                verificationStatus: 'pending'
+            }, { merge: true });
 
-      // Set doctor profile data for verification, now with the download URL
-      const doctorProfileData = { 
-        id: user.uid,
-        fullName,
-        stateOfRegistration,
-        medicalCouncilId,
-        licenseDocument: downloadURL, // Save the actual download URL
-        manualVerificationRequired: false,
-      };
-      batch.set(doctorProfileRef, doctorProfileData);
-      
-      // 3. Commit the batch
-      await batch.commit();
-      
-      toast({
-        title: 'Credentials Submitted',
-        description: 'Your submission is now under review by our support team.',
-      });
+            // Set doctor profile data for verification
+            const doctorProfileData = { 
+                id: user.uid,
+                fullName,
+                stateOfRegistration,
+                medicalCouncilId,
+                licenseDocument: downloadURL,
+                manualVerificationRequired: false,
+            };
+            batch.set(doctorProfileRef, doctorProfileData);
+            
+            // 3. Commit the batch
+            await batch.commit();
 
-      router.push('/dashboard');
-
-    } catch (error: any) {
-      console.error("Error submitting credentials:", error);
-      const permissionError = new FirestorePermissionError({
-          path: `users/${user.uid}`,
-          operation: 'write',
-          requestResourceData: { user: '...', profile: { fullName } },
-      });
-      errorEmitter.emit('permission-error', permissionError);
-      toast({
-        title: "Submission Error",
-        description: "Could not submit your credentials. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-        setIsSubmitting(false);
-    }
+        } catch (error: any) {
+            console.error("Background submission error:", error);
+            // Optionally, you could use a background notification system or
+            // log this to a more robust error tracking service.
+        } finally {
+            // This will run in the background, the user is already on the dashboard
+            if (typeof window !== 'undefined') {
+                setIsSubmitting(false);
+            }
+        }
+    };
+    
+    processSubmission();
   };
 
   return (
