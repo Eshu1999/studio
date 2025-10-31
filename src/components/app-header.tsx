@@ -78,7 +78,7 @@ export function AppHeader() {
             )}
         >
           <HeartPulse className="h-6 w-6 text-primary" />
-          <span className="text-lg">DocConnect</span>
+          <span className="text-lg">Bluepill</span>
         </Link>
       </div>
 
@@ -130,5 +130,3 @@ export function AppHeader() {
     </header>
   );
 }
-
-    

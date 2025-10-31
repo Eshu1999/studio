@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -72,7 +73,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b">
         <div className="flex items-center gap-2 py-2">
           <HeartPulse className="h-7 w-7 text-primary" />
-          <span className="text-xl font-semibold">DocConnect</span>
+          <span className="text-xl font-semibold">Bluepill</span>
         </div>
       </SidebarHeader>
       <SidebarContent className="p-2">

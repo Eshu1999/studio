@@ -1,5 +1,6 @@
+
 /**
- * @fileOverview Firestore Security Rules for DocConnect.
+ * @fileOverview Firestore Security Rules for Bluepill.
  *
  * Core Philosophy:
  * This ruleset enforces a strict user- and doctor-ownership model. Each user and doctor can only
