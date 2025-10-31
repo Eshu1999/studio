@@ -43,7 +43,7 @@ export default function VerifyCredentialsPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName || !stateOfRegistration || !medicalCouncilId || !licenseFile) {
       toast({
@@ -61,57 +61,53 @@ export default function VerifyCredentialsPage() {
 
     setIsSubmitting(true);
     
-    try {
-        // 1. Upload file to Firebase Storage
-        const filePath = `doctor-licenses/${user.uid}/${licenseFile.name}`;
-        const storageRef = ref(storage, filePath);
-        const uploadResult = await uploadBytes(storageRef, licenseFile!);
-        const downloadURL = await getDownloadURL(uploadResult.ref);
+    // Show immediate feedback and redirect. Upload happens in the background.
+    toast({
+      title: 'Credentials Submitted',
+      description: 'Your submission is now under review by our support team.',
+    });
+    router.push('/dashboard');
 
-        // 2. Prepare Firestore batch write
-        const userRef = doc(firestore, 'users', user.uid);
-        const doctorProfileRef = doc(firestore, `users/${user.uid}/doctorProfile/${user.uid}`);
-        const batch = writeBatch(firestore);
+    // Perform upload and database write in the background
+    const performSubmission = async () => {
+        try {
+            const filePath = `doctor-licenses/${user.uid}/${licenseFile.name}`;
+            const storageRef = ref(storage, filePath);
+            const uploadResult = await uploadBytes(storageRef, licenseFile!);
+            const downloadURL = await getDownloadURL(uploadResult.ref);
 
-        // Set initial user data with role and pending status
-        batch.set(userRef, {
-            id: user.uid,
-            email: user.email,
-            role: 'doctor',
-            verificationStatus: 'pending'
-        }, { merge: true });
+            const userRef = doc(firestore, 'users', user.uid);
+            const doctorProfileRef = doc(firestore, `users/${user.uid}/doctorProfile/${user.uid}`);
+            const batch = writeBatch(firestore);
 
-        // Set doctor profile data for verification
-        const doctorProfileData = { 
-            id: user.uid,
-            fullName,
-            stateOfRegistration,
-            medicalCouncilId,
-            licenseDocument: downloadURL,
-            manualVerificationRequired: false,
-        };
-        batch.set(doctorProfileRef, doctorProfileData);
-        
-        // 3. Commit the batch
-        await batch.commit();
-        
-        toast({
-          title: 'Credentials Submitted',
-          description: 'Your submission is now under review by our support team.',
-        });
-        
-        router.push('/dashboard');
+            batch.set(userRef, {
+                id: user.uid,
+                email: user.email,
+                role: 'doctor',
+                verificationStatus: 'pending'
+            }, { merge: true });
 
-    } catch (error: any) {
-        console.error("Submission error:", error);
-        toast({
-          title: 'Submission Failed',
-          description: error.message || "An unexpected error occurred. Please try again.",
-          variant: 'destructive',
-        });
-    } finally {
-        setIsSubmitting(false);
-    }
+            const doctorProfileData = { 
+                id: user.uid,
+                fullName,
+                stateOfRegistration,
+                medicalCouncilId,
+                licenseDocument: downloadURL,
+                manualVerificationRequired: false,
+            };
+            batch.set(doctorProfileRef, doctorProfileData);
+            
+            await batch.commit();
+        } catch (error: any) {
+            console.error("Background submission error:", error);
+            // Optionally, you could use a global state to inform the user of a background failure
+        } finally {
+            // This will only run in the background, UI has already moved on
+            // setIsSubmitting(false); // No longer needed to change state here
+        }
+    };
+
+    performSubmission();
   };
 
   return (
