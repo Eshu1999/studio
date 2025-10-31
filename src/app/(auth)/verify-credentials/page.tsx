@@ -81,8 +81,6 @@ export default function VerifyCredentialsPage() {
             const batch = writeBatch(firestore);
 
             batch.set(userRef, {
-                id: user.uid,
-                email: user.email,
                 role: 'doctor',
                 verificationStatus: 'pending'
             }, { merge: true });
