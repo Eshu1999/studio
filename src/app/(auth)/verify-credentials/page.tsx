@@ -43,7 +43,7 @@ export default function VerifyCredentialsPage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName || !stateOfRegistration || !medicalCouncilId || !licenseFile) {
       toast({
@@ -61,48 +61,63 @@ export default function VerifyCredentialsPage() {
 
     setIsSubmitting(true);
     
-    // Show immediate feedback and redirect. Upload happens in the background.
-    toast({
-      title: 'Credentials Submitted',
-      description: 'Your submission is now under review by our support team.',
-    });
-    router.push('/dashboard');
+    try {
+        const filePath = `doctor-licenses/${user.uid}/${licenseFile.name}`;
+        const storageRef = ref(storage, filePath);
+        
+        // Start the upload but don't wait for it to finish here.
+        const uploadTask = uploadBytes(storageRef, licenseFile);
 
-    // Perform upload and database write in the background
-    const performSubmission = async () => {
-        try {
-            const filePath = `doctor-licenses/${user.uid}/${licenseFile.name}`;
-            const storageRef = ref(storage, filePath);
-            const uploadResult = await uploadBytes(storageRef, licenseFile!);
+        // Prepare the database writes.
+        const userRef = doc(firestore, 'users', user.uid);
+        const doctorProfileRef = doc(firestore, `users/${user.uid}/doctorProfile/${user.uid}`);
+        const batch = writeBatch(firestore);
+
+        batch.set(userRef, {
+            role: 'doctor',
+            verificationStatus: 'pending'
+        }, { merge: true });
+
+        // Initially set the license path. It will be updated by the background upload.
+        const doctorProfileData = { 
+            id: user.uid,
+            fullName,
+            stateOfRegistration,
+            medicalCouncilId,
+            licenseDocument: filePath, // Store the path for now
+            manualVerificationRequired: false,
+        };
+        batch.set(doctorProfileRef, doctorProfileData);
+        
+        // CRITICAL: Await the database write to ensure the user role is set before redirecting.
+        await batch.commit();
+
+        // Now show feedback and redirect.
+        toast({
+          title: 'Credentials Submitted',
+          description: 'Your submission is now under review by our support team.',
+        });
+        router.push('/dashboard');
+
+        // Continue with the upload in the background and update the URL when done.
+        uploadTask.then(async (uploadResult) => {
             const downloadURL = await getDownloadURL(uploadResult.ref);
+            // Update the doctor profile with the final download URL.
+            await setDoc(doctorProfileRef, { licenseDocument: downloadURL }, { merge: true });
+        }).catch(error => {
+            console.error("Background license upload failed:", error);
+            // Optional: You could implement a mechanism to notify the user of the background failure.
+        });
 
-            const userRef = doc(firestore, 'users', user.uid);
-            const doctorProfileRef = doc(firestore, `users/${user.uid}/doctorProfile/${user.uid}`);
-            const batch = writeBatch(firestore);
-
-            batch.set(userRef, {
-                role: 'doctor',
-                verificationStatus: 'pending'
-            }, { merge: true });
-
-            const doctorProfileData = { 
-                id: user.uid,
-                fullName,
-                stateOfRegistration,
-                medicalCouncilId,
-                licenseDocument: downloadURL,
-                manualVerificationRequired: false,
-            };
-            batch.set(doctorProfileRef, doctorProfileData);
-            
-            await batch.commit();
-        } catch (error: any) {
-            console.error("Background submission error:", error);
-            // Optionally, you could use a global state to inform the user of a background failure
-        }
-    };
-
-    performSubmission();
+    } catch (error: any) {
+        console.error("Error during credential submission:", error);
+        toast({
+            title: 'Submission Failed',
+            description: error.message || 'An unexpected error occurred.',
+            variant: 'destructive',
+        });
+        setIsSubmitting(false);
+    }
   };
 
   return (
