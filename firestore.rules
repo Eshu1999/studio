@@ -32,22 +32,18 @@ service cloud.firestore {
     /**
      * @description Controls access to user profiles. Only the user can access their own profile.
      * @path /users/{userId}
-     * @allow (create) User with ID 'user123' can create their profile.
-     *          Request: auth.uid = 'user123', resource.data.id = 'user123'
-     * @allow (get, update, delete) User with ID 'user123' can read, update, and delete their profile.
+     * @allow (create, get, update, delete) User with ID 'user123' can manage their profile.
      *          Request: auth.uid = 'user123'
-     * @deny (create) User with ID 'user456' cannot create a profile with ID 'user123'.
-     *          Request: auth.uid = 'user456', resource.data.id = 'user123'
-     * @deny (get, update, delete) User with ID 'user456' cannot read, update, or delete user 'user123's profile.
+     * @deny (create, get, update, delete) User with ID 'user456' cannot manage user 'user123's profile.
      *          Request: auth.uid = 'user456'
-     * @principle Enforces document ownership for writes.
+     * @principle Enforces document ownership.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
+      allow read, write: if isOwner(userId);
+    }
+    
+    match /users/{userId}/doctorProfile/{profileId} {
+      allow read, write: if isOwner(userId);
     }
 
     /**
