@@ -8,7 +8,7 @@ import PatientDashboard from '@/components/patient-dashboard';
 import DoctorDashboard from '@/components/doctor-dashboard';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, FileCheck, CheckCircle, Video } from 'lucide-react';
+import { Clock, CheckCircle, Video } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -55,7 +55,9 @@ export default function DashboardPage() {
   }, [userDocRef, userLoading, firestore, user]);
 
   useEffect(() => {
-    if (!loading && !userLoading && userData?.role === 'doctor') {
+    if (loading || userLoading || !userData) return;
+
+    if (userData.role === 'doctor') {
       const hasSubmittedCredentials = !!doctorProfile?.medicalCouncilId;
       if (userData.verificationStatus === 'pending' && !doctorProfile?.manualVerificationRequired && !hasSubmittedCredentials) {
         router.push('/verify-credentials');
@@ -81,7 +83,6 @@ export default function DashboardPage() {
     const hasSubmittedCredentials = !!doctorProfile?.medicalCouncilId;
     
     // 1. Doctor has NOT submitted credentials yet.
-    // This case is now handled by the useEffect above to avoid render-time navigation.
     if (userData.verificationStatus === 'pending' && !doctorProfile?.manualVerificationRequired && !hasSubmittedCredentials) {
       return <div className="flex h-full items-center justify-center">Redirecting to credential submission...</div>;
     }
@@ -114,16 +115,15 @@ export default function DashboardPage() {
     }
     
     // 3. Admin has approved credentials, but doctor hasn't completed profile yet.
-    // This case is also handled by the useEffect.
     if (userData.verificationStatus === 'pending' && doctorProfile?.manualVerificationRequired && !userData.username) {
         return <div className="flex h-full items-center justify-center">Redirecting to complete your profile...</div>;
     }
 
-    // 4. Admin has approved, doctor has completed profile, but video call is pending.
-    if (userData.verificationStatus === 'pending' && doctorProfile?.manualVerification_required && userData.username) {
+    // 4. Admin has approved, doctor has completed profile, and video call is pending.
+    if (userData.verificationStatus === 'pending' && doctorProfile?.manualVerificationRequired && userData.username) {
        return (
          <div className="flex h-full items-center justify-center">
-          <Card className="max-w-lg text-center">
+          <Card className="max-w-2xl text-center">
               <CardHeader>
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 mb-4">
                       <Video className="h-6 w-6 text-blue-600" />
@@ -132,9 +132,17 @@ export default function DashboardPage() {
                   <CardDescription>Dr. {userData.firstName}, your credentials have been approved!</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col items-center">
-                  <p className="text-sm text-muted-foreground">
-                    To activate your account and make your profile public, please schedule a brief one-on-one video call with our verification team.
+                  <p className="text-sm text-muted-foreground max-w-prose">
+                    To activate your account and make your profile public, please schedule a brief one-on-one video call with our verification team. Please have your physical documents ready to show on the call.
                   </p>
+                  <div className="mt-4 text-left p-4 bg-secondary rounded-md w-full">
+                      <h4 className="font-semibold text-sm">Please have the following documents ready:</h4>
+                      <ul className="list-disc pl-5 mt-2 text-sm text-muted-foreground">
+                          <li>Aadhaar Card (or other national ID)</li>
+                          <li>Medical Certificate</li>
+                          <li>Medical License</li>
+                      </ul>
+                  </div>
                   <Button className="mt-6">
                     Schedule Verification Call
                   </Button>
