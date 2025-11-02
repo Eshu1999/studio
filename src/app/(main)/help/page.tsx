@@ -94,7 +94,7 @@ export default function HelpPage() {
                                 <h3 className="font-semibold">Email Support</h3>
                                 <p className="text-sm text-muted-foreground">Send us an email and we'll get back to you within 24 hours.</p>
                                  <Button variant="outline" className="mt-2" size="sm" asChild>
-                                    <a href="mailto:support@bluepill.app">support@bluepill.app</a>
+                                    <a href="mailto:support@faylocare.app">support@faylocare.app</a>
                                  </Button>
                             </div>
                         </div>

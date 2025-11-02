@@ -12,7 +12,7 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: 'Bluepill',
+  title: 'Faylocare',
   description: 'Find and book your trusted doctor.',
 };
 

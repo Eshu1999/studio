@@ -78,7 +78,7 @@ export function AppHeader() {
             )}
         >
           <HeartPulse className="h-6 w-6 text-primary" />
-          <span className="text-lg">Bluepill</span>
+          <span className="text-lg">Faylocare</span>
         </Link>
       </div>
 

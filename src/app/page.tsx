@@ -14,7 +14,7 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-gray-50/50">
       <header className="px-4 lg:px-6 h-16 flex items-center bg-background/80 backdrop-blur-sm border-b fixed top-0 w-full z-50">
         <Link href="/" className="flex items-center justify-center">
-          <span className="sr-only">Bluepill</span>
+          <span className="sr-only">Faylocare</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
           <Link
@@ -46,7 +46,7 @@ export default function Home() {
             <div className="max-w-3xl mx-auto flex flex-col items-center">
               <div className="flex items-center justify-center mb-4">
                 <HeartPulse className="h-12 w-12 text-primary" />
-                <span className="ml-3 text-4xl font-semibold">Bluepill</span>
+                <span className="ml-3 text-4xl font-semibold">Faylocare</span>
               </div>
               <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
                 Your Health, Your Schedule
@@ -94,7 +94,7 @@ export default function Home() {
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
         <p className="text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} Bluepill. All rights reserved.
+          &copy; {new Date().getFullYear()} Faylocare. All rights reserved.
         </p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">
           <Link href="#" className="text-xs hover:underline underline-offset-4">
